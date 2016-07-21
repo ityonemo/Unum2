@@ -1,13 +1,4 @@
 #tools.jl - various tools to make programming Lnums easier.
-doc"""
-  latticebits retrieves the number of bits that the lattice requires
-"""
-latticebits(lattice) = lnumlength(__MASTER_LATTICE_LIST[lattice])
-
-doc"""
-  latticemask retrieves the number of bits that the lattice requires
-"""
-latticemask(epochbits) = (one(UInt64) << (63 - epochbits)) - one(UInt64)
 
 doc"""
   @i reinterprets a PFloat as an integer
@@ -23,8 +14,89 @@ macro p(i)
   esc(:(reinterpret(PFloat{lattice, epochbits}, $i)))
 end
 
-function latticelength(lattice::Symbol)
-  latticelength(__MASTER_LATTICE_LIST[lattice])
+bitlength{lattice, epochbits}(::Type{PFloat{lattice, epochbits}}) = 1 + epochbits + latticebits(lattice)
+
+doc"""
+the `@gen_code` macro rejigs the standard julia `@generate` macro so that at the
+end the function expects a `code` expression variable that can be created and
+automatically extended using the `@code` macro.
+"""
+macro gen_code(f)
+  #make sure this macro precedes a function definition.
+  isa(f, Expr) || error("gen_code macro must precede a function definition")
+  (f.head == :function) || error("gen_code macro must precede a function definition")
+
+  #automatically generate a 'code-creation' statement at the head of the function.
+  unshift!(f.args[2].args, :(code = :(nothing)))
+  #insert the code release statement at the tail of the function.
+  push!(f.args[2].args, :(code))
+
+  #return the escaped function to the parser so that it generates the new function.
+  ##next, wrap the function f inside of the @generated macro and escape it
+  esc(:(@generated $f))
 end
 
-bitlength{lattice, epochbits}(::Type{PFloat{lattice, epochbits}}) = 1 + epochbits + latticelength(lattice)
+
+
+#fname extracts the function name from the expression
+function __fname(ex::Expr)
+  ex.args[1].args[1]
+end
+#__vfunc generates a type-parameter variadic function head.
+function __vfunc(fn)
+  :($fn{lattice, epochbits})
+end
+
+doc"""
+  the `@pfunction` macro is prepended to a function defined with parameters that
+  are generic Unum2 types (PFloat, PBound), and generates the function with
+  default parameters {lattice, epochbits}.  Also gives access to default type
+  variables P for PFloat{lattice, epochbits}, and B for PBound{lattice, epochbits},
+  ∅ for the NaN PBound and R "for all projective reals" PBound.
+"""
+#creates a universal function f that operates across all types of unums
+macro pfunction(f)
+  if (f.head == :(=))
+    (f.args[1].head == :call) || throw(ArgumentError("@universal macro must operate on a function"))
+  elseif (f.head == :function)
+    nothing  #we're good.
+  else
+    throw(ArgumentError("@universal macro must operate on a function"))
+  end
+
+  #extract the functionname and append the {ESS,FSS} signature onto the functionname
+  functionname = __fname(f)
+  functioncall = __vfunc(functionname)
+
+  #replace the function call.
+  f.args[1].args[1] = functioncall
+
+  #next work with the parameters
+  parameters = f.args[1].args
+
+  ptypedefs = quote
+    P = PFloat{lattice, epochbits}
+    B = PBound{lattice, epochbits}
+    ∅ = nullset(PBound{lattice, epochbits})
+    R = allprojectivereal(PBound{lattice, epochbits})
+  end
+
+  #append these type definitions onto fsmall and flarge.
+  unshift!(f.args[2].args, ptypedefs)
+
+  for idx = 2:length(parameters)
+    if (isa(parameters[idx], Expr)
+         && (parameters[idx].head == :(::)))
+      utype = parameters[idx].args[2]
+      if (utype in [:PFloat, :PBound])
+        f.args[1].args[idx].args[2] = :($utype{lattice, epochbits})
+      elseif isa(utype, Expr)
+        if (utype.head == :curly) && (utype.args[1] == :Type) && (utype.args[2] in [:PFloat, :Pbound])
+          f.args[1].args[idx].args[2].args[2] = :($utype{lattice, epochbits})
+        end
+      end
+    end
+  end
+
+  return esc(:(Base.@__doc__ $f))
+end
