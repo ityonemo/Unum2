@@ -4,5 +4,7 @@ const z64          = 0x0000_0000_0000_0000
 
 isnegative(x::PFloat) = ((@i x) & (~sign_mask) != 0) & (z64 != (sign_mask & (@i x)))
 isinverted(x::PFloat) = ((@i x) & (~sign_mask) != 0) & ((z64 != (inv_mask & (@i x))) == (z64 != (sign_mask & (@i x))))
+isexact{lattice, epochbits}(x::PFloat{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) == 0
+isulp{lattice, epochbits}(x::PFloat{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) != 0
 
 export isnegative, isinverted

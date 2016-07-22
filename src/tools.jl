@@ -8,6 +8,13 @@ macro i(p)
 end
 
 doc"""
+  @s reinterprets as a signed integer
+"""
+macro s(p)
+  esc(:(reinterpret(Int64, $p)))
+end
+
+doc"""
   @p reinterprets a integer as a PFloat
 """
 macro p(i)
@@ -57,11 +64,11 @@ doc"""
 #creates a universal function f that operates across all types of unums
 macro pfunction(f)
   if (f.head == :(=))
-    (f.args[1].head == :call) || throw(ArgumentError("@universal macro must operate on a function"))
+    (f.args[1].head == :call) || throw(ArgumentError("@pfunction macro must operate on a function"))
   elseif (f.head == :function)
     nothing  #we're good.
   else
-    throw(ArgumentError("@universal macro must operate on a function"))
+    throw(ArgumentError("@pfunction macro must operate on a function"))
   end
 
   #extract the functionname and append the {ESS,FSS} signature onto the functionname
@@ -78,7 +85,7 @@ macro pfunction(f)
     P = PFloat{lattice, epochbits}
     B = PBound{lattice, epochbits}
     ∅ = nullset(PBound{lattice, epochbits})
-    R = allprojectivereal(PBound{lattice, epochbits})
+    R = allprojectivereals(PBound{lattice, epochbits})
   end
 
   #append these type definitions onto fsmall and flarge.
