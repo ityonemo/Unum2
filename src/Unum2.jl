@@ -35,6 +35,7 @@ include("constants.jl")
 include("synthesize.jl")
 include("properties.jl")
 
+include("math/add.jl")
 include("math/mul.jl")
 
 include("lattices/four-bit-lattice.jl")

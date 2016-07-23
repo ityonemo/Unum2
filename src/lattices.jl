@@ -56,10 +56,19 @@ pivotvalue(l::Lattice) = floatval(l[end])
 
 function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
   #first, validate the lattice
-  haskey(__MASTER_LATTICE_LIST, name) && throw(ArgumentError("Proposed lattice for symbol $name is already defined."))
+  if haskey(__MASTER_LATTICE_LIST, name)
+    #it's all good if they are the same. 
+    if (__MASTER_LATTICE_LIST[name] == l) &&
+       (__MASTER_PIVOT_LIST[name] == p)
+       return nothing
+    end
+
+    throw(ArgumentError("Proposed lattice for symbol $name is already defined."))
+  end
   validate(l, p)
   __MASTER_LATTICE_LIST[name] = l
   __MASTER_PIVOT_LIST[name] = p
+  nothing
 end
 
 function list(l::Lattice)

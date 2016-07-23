@@ -6,10 +6,4 @@ doc"""
 """
 epochmask(epochbits) = magnitude_mask - ((one(UInt64) << (63 - epochbits)) - one(UInt64))
 
-@generated function evalue{lattice, epochbits}(x::PFloat{lattice, epochbits})
-  shift = 63 - epochbits
-  mask = epochmask(epochbits)
-  :(((@i x) & $mask) >> $shift)
-end
-
-max_epoch(epochbits) = (1 << epochbits) - 1
+max_epoch(epochbits) = (1 << (epochbits - 1)) - 1

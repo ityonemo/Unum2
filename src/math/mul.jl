@@ -25,7 +25,7 @@ end
 
 @generated function exact_arithmetic_multiplication{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
   mult_table = Symbol("__$(lattice)_mult_table")
-  max_epoch(epochbits)
+  m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
   isdefined(Unum2, mult_table) || create_multiplication_table(Val{lattice})
@@ -52,12 +52,14 @@ end
     res_sign = x_negative $ y_negative
 
     #check to see if we overflow to extremum.
-    (res_epoch) > max_epoch(epochbits) && return extremum(PFloat{lattice, epochbits}, res_sign, x_inverted)
+    ((res_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, res_sign, x_inverted)
 
     synthesize(PFloat{lattice, epochbits}, res_sign, x_inverted, res_epoch, res_value)
   end
 end
 
+#I didn't want this to be a generated function, but it was the cleanest way to
+#generate and use the new sybol.
 @generated function create_multiplication_table{lattice}(::Type{Val{lattice}})
   mult_table = Symbol("__$(lattice)_mult_table")
   quote

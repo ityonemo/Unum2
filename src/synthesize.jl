@@ -30,7 +30,7 @@ end
     tvalue = @i(((negative != inverted) ? -1 : 1) * @s p)
     epoch = (tvalue & magnitude_mask) >> $eshift
     lvalue = (tvalue & $lmask) >> $tshift
-    epoch -= (lvalue == z64) * 0x0000_0000_0000_0001
+    epoch -= (!((@i p) & magnitude_mask == 0x0000_0000_0000_0000)) * 0x0000_0000_0000_0001
 
     return (negative, inverted, epoch, lvalue)
   end
