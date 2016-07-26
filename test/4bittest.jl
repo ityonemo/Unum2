@@ -1,6 +1,6 @@
 #4-bit unum2 basics.
 
-import Unum2.PFloat4
+include("../src/lattices/four-bit-lattice.jl")
 
 @test inf(PFloat4)     : lookslike : 0x8000_0000_0000_0000
 @test zero(PFloat4)    : lookslike : 0x0000_0000_0000_0000
@@ -20,6 +20,9 @@ nhlf = reinterpret(PFloat4, 0xE000_0000_0000_0000)
 @test Unum2.decompose(phlf) == (false, true,  0x0000_0000_0000_0000, 0x0000_0000_0000_0002)
 @test Unum2.decompose(ntwo) == (true,  false, 0x0000_0000_0000_0000, 0x0000_0000_0000_0002)
 @test Unum2.decompose(nhlf) == (true,  true,  0x0000_0000_0000_0000, 0x0000_0000_0000_0002)
+
+@test Unum2.synthesize(PFloat4, false, false, 0x0000_0000_0000_0000, 0x0000_0000_0000_0000) == pone
+@test Unum2.synthesize(PFloat4, false, true, 0x0000_0000_0000_0000, 0x0000_0000_0000_0000) == pone
 
 ################################################################################
 
@@ -46,4 +49,5 @@ nhlf = reinterpret(PFloat4, 0xE000_0000_0000_0000)
 
 @test Unum2.add(ptwo, ptwo) == pos_many(PFloat4)
 @test Unum2.add(pone, pone) == ptwo
-=#
+
+@test Unum2.add(phlf, phlf) == pone

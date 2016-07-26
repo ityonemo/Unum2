@@ -7,11 +7,12 @@
   quote
     flipsign = negative $ inverted
 
-    result::UInt64 = @i (((epoch << $eshift) | (lvalue)) * (flipsign ? -1 : 1)) << $tshift
+    result::Int64 = ((epoch << $eshift) | (lvalue))  << $tshift
+    result |= 0x4000_0000_0000_0000
+    result *= (flipsign ? -1 : 1)
+    result &= @s magmask(T)
 
-    result &= magmask(T)
-
-    result += sign_mask * negative
+    result |= @s(sign_mask * negative)
 
     #synthesize epoch + lvalue combination.
 

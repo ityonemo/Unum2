@@ -8,11 +8,11 @@ const __MASTER_PIVOT_LIST = Dict{Symbol, LatticeNum}()
 function validate(l::Lattice, p::LatticeNum)
   #makes sure that a lattice has a valid properties.
   #first, the numebr of elements in the lattice must be 2^n, or zero.
-  (length(l) == 0) || ispow2(length(l)) || throw(ArgumentError("proposed lattice has invalid: member count must be a power of 2"))
+  ispow2(length(l) + 1) || throw(ArgumentError("proposed lattice has invalid: member count must be a power of 2 minus one"))
 
   #next scan the lattice and make sure it obeys ordering properties.
   for idx = 1:length(l)
-    (l[idx] == 1) && throw(ArgumentError("proposed lattice is invalid: cannot contain 1"))  #1 is not allowed to be in the lattice.
+    (l[idx] <= 1) && throw(ArgumentError("proposed lattice is invalid: cannot contain values less than or equal to 1"))  #1 is not allowed to be in the lattice.
     (idx > 1) && (floatval(l[idx]) > floatval(l[idx - 1]) || throw(ArgumentError("proposed lattice has invalid structure, $(l[idx]) < $(l[idx - 1])")))
     (idx < length(l)) && (floatval(l[idx]) < floatval(l[idx + 1]) || throw(ArgumentError("proposed lattice has invalid structure, $(l[idx]) > $(l[idx + 1])")))
   end
@@ -57,7 +57,7 @@ pivotvalue(l::Lattice) = floatval(l[end])
 function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
   #first, validate the lattice
   if haskey(__MASTER_LATTICE_LIST, name)
-    #it's all good if they are the same. 
+    #it's all good if they are the same.
     if (__MASTER_LATTICE_LIST[name] == l) &&
        (__MASTER_PIVOT_LIST[name] == p)
        return nothing
@@ -77,8 +77,7 @@ function list(l::Lattice)
 end
 
 function latticebits(l::Lattice)
-  (length(l) == 0) && return 1
-  trailing_zeros(length(l)) + 2
+  trailing_zeros(length(l) + 1) + 1
 end
 
 function search_lattice(l::Lattice, v)
