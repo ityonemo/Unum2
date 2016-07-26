@@ -50,6 +50,10 @@ nhlf = reinterpret(PFloat4, 0xE000_0000_0000_0000)
 @test Unum2.mul(phlf, nhlf) == neg_few(PFloat4)
 @test Unum2.mul(nhlf, phlf) == neg_few(PFloat4)
 
+@test Unum2.div(ptwo, ptwo) == pone
+@test Unum2.div(pone, phlf) == ptwo
+@test Unum2.div(pone, ptwo) == phlf
+@test Unum2.div(phlf, ptwo) == pos_few(PFloat4)
 ################################################################################
 
 @test Unum2.add(ptwo, ptwo) == pos_many(PFloat4)

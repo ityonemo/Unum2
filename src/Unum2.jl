@@ -38,6 +38,7 @@ include("inverses.jl")
 
 include("math/add.jl")
 include("math/mul.jl")
+include("math/div.jl")
 
 include("h-layer.jl")
 

@@ -19,8 +19,7 @@ end
 
 @pfunction function exact_mul(x::PFloat, y::PFloat)
   if (isinverted(x) $ isinverted(y))
-    return nothing
-    #exact_arithmetic_division(x, y)
+    exact_arithmetic_division(x, multiplicativeinverse(y))
   else
     exact_arithmetic_multiplication(x, y)
   end

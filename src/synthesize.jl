@@ -29,9 +29,9 @@ end
     negative = (sign_mask & ivalue) != z64
     inverted = ((inv_mask & ivalue) == z64) $ negative
     tvalue = @i(((negative != inverted) ? -1 : 1) * @s p)
-    epoch = (tvalue & magnitude_mask) >> $eshift
+    epoch::Int64 = @s((tvalue & magnitude_mask) >>> $eshift)
     lvalue = (tvalue & $lmask) >> $tshift
-    epoch -= (!((@i p) & magnitude_mask == 0x0000_0000_0000_0000)) * 0x0000_0000_0000_0001
+    epoch -= (!((@i p) & magnitude_mask == 0x0000_0000_0000_0000)) * 1
 
     return (negative, inverted, epoch, lvalue)
   end
