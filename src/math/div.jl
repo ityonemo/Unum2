@@ -26,6 +26,10 @@ end
 end
 
 @generated function exact_arithmetic_division{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+
+  #note that parameters passed to this function will always be pointing in the
+  #same direction (out or in) relative to one.
+
   div_table = Symbol("__$(lattice)_div_table")
   inv_table = Symbol("__$(lattice)_inv_table")
   m_epoch = max_epoch(epochbits)
