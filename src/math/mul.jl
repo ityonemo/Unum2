@@ -1,4 +1,8 @@
 #Unum2 multiplication.
+
+import Base.*
+*{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = mul(x,y)
+
 @pfunction function mul(x::PFloat, y::PFloat)
   is_inf(x) && return (is_zero(y) ? R : inf(P))
   is_inf(y) && return (is_zero(x) ? R : inf(P))
