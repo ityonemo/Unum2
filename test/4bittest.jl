@@ -35,6 +35,11 @@ nhlf = reinterpret(PFloat4, 0xE000_0000_0000_0000)
 ################################################################################
 #mathey stuff
 
+@test Unum2.multiplicativeinverse(ptwo) == phlf
+@test Unum2.multiplicativeinverse(phlf) == ptwo
+@test Unum2.additiveinverse(ptwo) == ntwo
+@test Unum2.additiveinverse(ntwo) == ptwo
+
 @test Unum2.mul(ptwo, ptwo) == pos_many(PFloat4)
 @test Unum2.mul(ntwo, ntwo) == pos_many(PFloat4)
 @test Unum2.mul(ptwo, ntwo) == neg_many(PFloat4)
