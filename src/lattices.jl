@@ -1,6 +1,6 @@
 #master lattice list
 
-typealias LatticeNum Union{AbstractFloat, Integer, Symbol}
+typealias LatticeNum Union{AbstractFloat, Integer, Rational, Symbol}
 typealias Lattice Array{LatticeNum, 1}
 const __MASTER_LATTICE_LIST = Dict{Symbol, Lattice}()
 const __MASTER_PIVOT_LIST = Dict{Symbol, LatticeNum}()

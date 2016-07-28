@@ -64,7 +64,7 @@ end
       ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, x_negative, false)
 
       synthesize(PFloat{lattice, epochbits}, x_negative, false, result_epoch, result_value)
-    else
+    elseif ((x_inverted) && (y_inverted))
       if (x_epoch == y_epoch)
         result_value = $add_inv_table[x_value >> 1  + 1, y_value >> 1 + 1]
         result_epoch = (result_value > x_value) ? (x_epoch - 1) : x_epoch

@@ -1,3 +1,11 @@
 #comparison
 
-@pfunction Base.<(x::PFloat, y::PFloat) = isinfinite(y) | isinfinite(x) | (@s x) < (@s y)
+import Base: <, >
+
+@pfunction function <(x::PFloat, y::PFloat)
+  is_inf(y) | is_inf(x) | (@s x) < (@s y)
+end
+
+@pfunction function >(x::PFloat, y::PFloat)
+  y < x
+end

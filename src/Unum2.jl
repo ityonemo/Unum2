@@ -36,9 +36,11 @@ include("synthesize.jl")
 include("properties.jl")
 include("inverses.jl")
 
+include("math/cmp.jl")
 include("math/add.jl")
 include("math/mul.jl")
 include("math/div.jl")
+include("math/sub.jl")
 
 include("h-layer.jl")
 
