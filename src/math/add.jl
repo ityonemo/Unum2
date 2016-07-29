@@ -30,9 +30,9 @@ end
 
 @generated function exact_arithmetic_addition{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
   #first figure out the epoch reduction limit
-  additive_reduction_table = Symbol("__$(lattice)_adr_table")
-  add_table = Symbol("__$(lattice)_add_table")
-  add_inv_table = Symbol("__$(lattice)_add_inv_table")
+  add_table       = table_name(lattice, :add)
+  add_inv_table   = table_name(lattice, :add_inv)
+  add_cross_table = table_name(lattice, :add_cross)
   m_epoch = max_epoch(epochbits)
 
   #create the additive reduction table, if necessary.
@@ -41,40 +41,51 @@ end
   #THE LATTICE DELTA IS NEVER DECREASING, THIS IS ALWAYS GOOD ENOUGH?  MAYBE.
   #create the addition table, if necessary.
 
-  isdefined(Unum2, add_table) || create_addition_table(Val{lattice})
-  isdefined(Unum2, add_inv_table) || create_inverted_addition_table(Val{lattice})
+  isdefined(Unum2, add_table)       || create_addition_table(Val{lattice})
+  isdefined(Unum2, add_inv_table)   || create_inverted_addition_table(Val{lattice})
+  isdefined(Unum2, add_cross_table) || create_crossed_addition_table(Val{lattice})
 
   quote
-    (x_negative, x_inverted, x_epoch, x_value) = decompose(x)
-    (y_negative, y_inverted, y_epoch, y_value) = decompose(y)
+    #reorder the two values so that they're in magnitude order.
+    (h, l) = ((x > y) $ (isnegative(x))) ? (x, y) : (y, x)
+
+    (h_negative, h_inverted, h_epoch, h_value) = decompose(h)
+    (l_negative, l_inverted, l_epoch, l_value) = decompose(l)
 
     result_epoch::Int64
 
     #for now, only support adding a non-inverted value to a non-inverted value.
-    if (!x_inverted) && (!y_inverted)
+    if (!h_inverted) && (!l_inverted)
       #for now, only support adding things that are in the same epoch.
-      if x_epoch == y_epoch
-        result_value = $add_table[x_value >> 1 + 1, y_value >> 1 + 1]
-        result_epoch = (result_value < x_value) ? (x_epoch + 1) : x_epoch
+      if h_epoch == l_epoch
+        result_value = $add_table[h_value >> 1 + 1, l_value >> 1 + 1]
+        result_epoch = (result_value < h_value) ? (h_epoch + 1) : h_epoch
       else
         return nothing #for now.
-        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
+        #(result_value, result_epoch) = (h_epoch > l_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
       end
 
-      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, x_negative, false)
+      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, h_negative, false)
 
-      synthesize(PFloat{lattice, epochbits}, x_negative, false, result_epoch, result_value)
-    elseif ((x_inverted) && (y_inverted))
-      if (x_epoch == y_epoch)
-        result_value = $add_inv_table[x_value >> 1  + 1, y_value >> 1 + 1]
-        result_epoch = (result_value > x_value) ? (x_epoch - 1) : x_epoch
+      synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value)
+    elseif ((h_inverted) && (l_inverted))
+      if (h_epoch == l_epoch)
+        result_value = $add_inv_table[h_value >> 1  + 1, l_value >> 1 + 1]
+        result_epoch = (result_value > h_value) ? (h_epoch - 1) : h_epoch
       else
         return nothing # for now.
       end
 
-      #x_epoch needs to be an Int64
+      #h_epoch needs to be an Int64
 
-      synthesize(PFloat{lattice, epochbits}, x_negative, false, result_epoch, result_value)
+      synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value)
+    elseif (h_epoch == 0) && (l_epoch == 0) #h is not inverted, and l is inverted
+      result_value = $add_cross_table[h_value >> 1 + 1, l_value >> 1 + 1]
+      result_epoch = (result_value > h_value) ? (h_epoch + 1) : h_epoch
+
+      synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value)
+    else
+      return nothing #for now.
     end
   end
 end
@@ -83,7 +94,7 @@ end
 # ADDITION TABLES
 
 @generated function create_addition_table{lattice}(::Type{Val{lattice}})
-  add_table = Symbol("__$(lattice)_add_table")
+  add_table = table_name(lattice, :add)
   quote
     #store the lattice values and the pivot values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
@@ -94,21 +105,19 @@ end
     #by exacts.
     global const $add_table = Matrix{UInt64}(l + 1, l + 1)
 
-    for idx = 0:l
-      for idx2 = 0:l
-        true_value = ((idx == 0) ? 1 : lattice_values[idx]) +
-                     ((idx2 == 0) ? 1 : lattice_values[idx2])
-        #first check to see if the true_value corresponds to the pivot value.
-        (true_value >= pivot_value) && (true_value /= pivot_value)
+    for idx = 0:l, idx2 = 0:l
+      true_value = ((idx == 0) ? 1 : lattice_values[idx]) +
+                   ((idx2 == 0) ? 1 : lattice_values[idx2])
+      #first check to see if the true_value corresponds to the pivot value.
+      (true_value >= pivot_value) && (true_value /= pivot_value)
 
-        $add_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
-      end
+      $add_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
     end
   end
 end
 
 @generated function create_inverted_addition_table{lattice}(::Type{Val{lattice}})
-  add_inv_table = Symbol("__$(lattice)_add_inv_table")
+  add_inv_table = table_name(lattice, :add_inv)
   quote
     #store the lattice values and the pivot values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
@@ -119,15 +128,36 @@ end
     #by exacts.
     global const $add_inv_table = Matrix{UInt64}(l + 1, l + 1)
 
-    for idx = 0:l
-      for idx2 = 0:l
-        true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) +
-                     ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
-        #first check to see if the true_value corresponds to the pivot value.
-        (true_value >= pivot_value) && (true_value /= pivot_value)
+    for idx = 0:l, idx2 = 0:l
+      true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) +
+                   ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
+      #first check to see if the true_value corresponds to the pivot value.
+      (true_value >= pivot_value) && (true_value /= pivot_value)
 
-        $add_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
-      end
+      $add_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
+    end
+  end
+end
+
+@generated function create_crossed_addition_table{lattice}(::Type{Val{lattice}})
+  add_cross_table = table_name(lattice, :add_cross)
+  quote
+    #store the lattice values and the pivot values.
+    lattice_values = __MASTER_LATTICE_LIST[lattice]
+    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    l = length(lattice_values)
+    #actually allocate the memory for the matrix.  We can make easy inferences about
+    #some things, because we know that 1 * value == value, and bounds must be bounded
+    #by exacts.
+    global const $add_cross_table = Matrix{UInt64}(l + 1, l + 1)
+
+    for idx = 0:l, idx2 = 0:l
+      true_value = (((idx == 0) ? 1 : lattice_values[idx]) +
+                   ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
+      #first check to see if the true_value corresponds to the pivot value.
+      (true_value >= pivot_value) && (true_value /= pivot_value)
+
+      $add_cross_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
     end
   end
 end

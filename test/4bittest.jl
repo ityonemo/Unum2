@@ -60,12 +60,12 @@ nhlf = reinterpret(PFloat4, 0xE000_0000_0000_0000)
 @test Unum2.add(ptwo, ptwo) == pos_many(PFloat4)
 @test Unum2.add(pone, pone) == ptwo
 @test Unum2.add(phlf, phlf) == pone
+println(bits(Unum2.add(pone, phlf)))
 
 ################################################################################
 
 @test Unum2.sub(ptwo, ptwo) == zero(PFloat4)
 @test Unum2.sub(ptwo, pone) == pone
 @test Unum2.sub(ntwo, ntwo) == zero(PFloat4)
-println("----")
 @test Unum2.sub(ntwo, neg_one(PFloat4)) == neg_one(PFloat4)
-#@test Unum2.sub(pone, phlf) == phlf
+@test Unum2.sub(pone, phlf) == phlf

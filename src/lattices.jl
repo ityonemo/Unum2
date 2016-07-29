@@ -89,5 +89,5 @@ function search_lattice(l::Lattice, v)
       return idx * 2 - 1
     end
   end
-  return length(l) + 1
+  return 2 * length(l) + 1
 end
