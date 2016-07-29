@@ -36,6 +36,7 @@ include("synthesize.jl")
 include("properties.jl")
 include("inverses.jl")
 
+include("math/tables.jl")
 include("math/cmp.jl")
 include("math/add.jl")
 include("math/mul.jl")
