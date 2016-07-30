@@ -52,7 +52,9 @@ function describe(n::LatticeNum)
   string(n)
 end
 
-pivotvalue(l::Lattice) = floatval(l[end])
+function pivot(name::Symbol)
+  __MASTER_PIVOT_LIST[name]
+end
 
 function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
   #first, validate the lattice

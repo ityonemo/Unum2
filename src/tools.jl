@@ -107,3 +107,14 @@ macro pfunction(f)
 
   return esc(:(Base.@__doc__ $f))
 end
+
+const z64 = 0x0000_0000_0000_0000
+const t64 = 0x8000_0000_0000_0000
+
+macro unumbers()
+  esc(quote
+    import Unum2: z64, t64
+  end)
+end
+
+export @unumbers
