@@ -37,7 +37,14 @@ function extremum{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}, negat
   end
 end
 
-export pos_many, neg_many, pos_few, neg_few
+################################################################################
+# PBOUND constants
 
-nullset{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = nothing
-allprojectivereals{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = nothing
+emptyset{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PFloat{lattice, epochbits}), zero(PFloat{lattice, epochbits}), PFLOAT_NULLSET)
+emptyset{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = PBound{lattice, epochbit}(zero(T), zero(T), PFLOAT_NULLSET)
+
+allprojectivereals{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PFloat{lattice, epochbits}), zero(PFloat{lattice, epochbits}), PFLOAT_ALLPREALS)
+allprojectivereals{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = PBound{lattice, epochbit}(zero(T), zero(T), PFLOAT_ALLPREALS)
+################################################################################
+
+export pos_many, neg_many, pos_few, neg_few

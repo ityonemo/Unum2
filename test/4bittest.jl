@@ -2,7 +2,7 @@
 
 @unumbers
 
-include("../src/lattices/four-bit-lattice.jl")
+import_lattice(:PFloat4)
 
 #create the entire circle of values.
 p4_inf   = PFloat4(Inf)
@@ -85,6 +85,23 @@ end
 @test !isnegative(p4p_much)
 @test !isnegative(p4p_two )
 @test !isnegative(p4p_many)
+
+@test !ispositive(p4_inf  )
+@test !ispositive(p4n_many)
+@test !ispositive(p4n_two )
+@test !ispositive(p4n_much)
+@test !ispositive(p4n_one )
+@test !ispositive(p4n_most)
+@test !ispositive(p4n_half)
+@test !ispositive(p4n_some)
+@test !ispositive(p4_zero )
+@test  ispositive(p4p_some)
+@test  ispositive(p4p_half)
+@test  ispositive(p4p_most)
+@test  ispositive(p4p_one )
+@test  ispositive(p4p_much)
+@test  ispositive(p4p_two )
+@test  ispositive(p4p_many)
 
 @test !isinverted(p4_inf  )
 @test !isinverted(p4n_many)

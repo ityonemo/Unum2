@@ -93,3 +93,15 @@ function search_lattice(l::Lattice, v)
   end
   return 2 * length(l) + 1
 end
+
+const __LATTICE_DICT = Dict{Symbol, ASCIIString}(
+  :PFloat3 => "three-bit-lattice.jl",
+  :PFloat4 => "four-bit-lattice.jl",
+  :PFloat5 => "five-bit-lattice.jl"
+)
+function import_lattice(l)
+  s = string(Pkg.dir("Unum2"), "/src/lattices/", __LATTICE_DICT[l])
+  include(s)
+end
+
+export import_lattice

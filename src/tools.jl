@@ -84,7 +84,7 @@ macro pfunction(f)
   ptypedefs = quote
     P = PFloat{lattice, epochbits}
     B = PBound{lattice, epochbits}
-    ∅ = nullset(PBound{lattice, epochbits})
+    N = emptyset(PBound{lattice, epochbits})
     R = allprojectivereals(PBound{lattice, epochbits})
   end
 
