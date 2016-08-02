@@ -11,7 +11,7 @@
   B(add(x.lower, y.lower, :lower), add(x_upper_proxy, y_upper_proxy, :upper))
 end
 
--{lattice, epochbits}(x::PBound{lattice, epochbits}) = issingle(x) ? B(-x.lower, x.upper, x.flags) : B(-x.upper, -x.lower, x.flags)
+-{lattice, epochbits}(x::PBound{lattice, epochbits}) = issingle(x) ? B(-x.lower, x.upper, x.state) : B(-x.upper, -x.lower, x.state)
 -{lattice, epochbits}(x::PBound{lattice, epochbits}, y::PBound{lattice, epochbits}) = sub(x,y)
 @pfunction sub(x::PBound, y::PBound) = add(x, -y)
 
@@ -50,6 +50,8 @@ end
   end
 end
 
+__negative_sided(x::PBound) = (!ispositive(x.lower))
+
 #x definitely rounds infinity, y may or may not round infinity.  Either may
 #or may not round zero.
 @pfunction function inf_mul(x::PBound, y::PBound)
@@ -57,10 +59,46 @@ end
     allprojectivereals(B)
   elseif rounds_zero(x)
     rounds_inf(y) && return allprojectivereals(B)
-    #more interesting shit.
 
-  else
+    #at this juncture, the value x must round both zero and infinity, and
+    #the value y must be a standard, nonflipped double interval that is only on
+    #one side of zero.
 
+    # (100, 1) * (3, 4)     -> (300, 4)    (l * l, u * u)
+    # (100, 1) * (-4, -3)   -> (-4, -300)  (u * l, l * u)
+    # (-1, -100) * (3, 4)   -> (-4, -300)  (l * u, u * l)
+    # (-1, -100) * (-4, -3) -> (300, 4)    (u * u, l * l)
+
+    _state = _negative_sided(x) * 1 + isnegative(y) * 2
+
+    if (state == 0)
+      B(mul(x.lower, y.lower, :lower), mul(x.upper, y.upper, :upper))
+    elseif (state == 1)
+      B(mul(x.upper, y.lower, :lower), mul(x.lower, y.upper, :upper))
+    elseif (state == 2)
+      B(mul(x.upper, y.lower, :lower), mul(x.lower, y.upper, :upper))
+    else   #state == 3
+      B(mul(x.upper, y.upper, :lower), mul(x.lower, y.lower, :upper))
+    end
+  elseif rounds_inf(y)  #now we must check if y rounds infinity.
+    #like the double "rounds zero" case, we have to check four possible endpoints.
+    #unlinke the "rounds zero" case, the lower ones are positive valued, so that's not "crossed"
+    _l = min(mul(x.lower, y.lower, :lower), mul(x.upper, y.upper, :lower))
+    _u = max(mul(x.lower, y.upper, :lower), mul(x.upper, y.lower, :lower))
+
+    #construct the result.
+    B(_l, _u)
+  else  #the last case is if x rounds infinity but y is a "well-behaved" value.
+
+    #canonical example:
+    # (2, -3) * (5, 7) -> (10, -15)
+    # (2, -3) * (-7, -5) -> (15, -10)
+
+    if isnegative(y)
+      B(mul(x.upper, y.upper, :lower), mul(x.lower, y.upper, :upper))
+    else
+      B(mul(x.lower, y.lower, :lower), mul(x.upper, y.lower, :upper))
+    end
   end
 end
 
@@ -70,7 +108,7 @@ end
   #NB:  We need to check for strange situations with infinity here.
 
   if rounds_zero(y)
-  #############
+
   # when rhs spans zero, we have to check four possible endpoints.
     _l = min(mul(x.lower, y.upper, :lower), mul(x.upper, y.lower, :lower))
     _u = max(mul(x.lower, y.lower, :upper), mul(x.upper, y.upper, :upper))
@@ -78,7 +116,6 @@ end
     #construct the result.
     B(_l, _u)
 
-  #############
   # in the case where the rhs doesn't span zero, we must only multiply by the
   # extremum.
   elseif is_positive(y)
@@ -88,6 +125,6 @@ end
   end
 end
 
-/{lattice, epochbits}(x::PBound{lattice, epochbits}) = issingle(x) ? B(-x.lower, x.upper, x.flags) : B(/(x.upper), /(x.lower), x.flags)
+/{lattice, epochbits}(x::PBound{lattice, epochbits}) = issingle(x) ? B(-x.lower, x.upper, x.state) : B(/(x.upper), /(x.lower), x.state)
 /{lattice, epochbits}(x::PBound{lattice, epochbits}, y::PBound{lattice, epochbits}) = div(x,y)
 @pfunction div(x::PBound, y::PBound) = mul(x, /(y))

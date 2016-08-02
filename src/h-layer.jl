@@ -10,15 +10,15 @@ function Base.show{lattice, epochbits}(io::IO, x::PFloat{lattice, epochbits})
 end
 
 function Base.show{lattice, epochbits}(io::IO, x::PBound{lattice, epochbits})
-  if (x.flags & PFLOAT_SINGLETON != 0)
+  if (x.state == PFLOAT_SINGLETON)
     print(io, "▾(")
     show(io, x.lower)
     print(io, ")")
-  elseif (x.flags & PFLOAT_STDBOUND  != 0)
+  elseif (x.state == PFLOAT_STDBOUND)
     show(io, x.lower)
     print(io, " → ")
     show(io, x.upper)
-  elseif (x.flags & PFLOAT_ALLPREALS != 0)
+  elseif (x.state == PFLOAT_ALLPREALS)
     print(io, string("ℝᵖ(PBound{:", lattice ,",", epochbits, "})"))
   else
     print(io, string("∅(PBound{:", lattice ,",", epochbits, "})"))

@@ -12,14 +12,14 @@ export isnegative, ispositive, isinverted
 
 #pbound properties.
 
-isempty{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.flags == 0x0000)
-issingle{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.flags == 0x0001)
-isdouble{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.flags == 0x0002)
-ispreals{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.flags == 0x0004)
+isempty{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT_NULLSET)
+issingle{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT_SINGLETON)
+isdouble{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT_STDBOUND)
+ispreals{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT_ALLPREALS)
 
-roundsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = (x.flags == 0x0002) && (x.upper < x.lower)
+roundsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PFLOAT_ALLPREALS) || (x.state == PFLOAT_STDBOUND) && (x.upper < x.lower)
 function roundszero{lattice, epochbits}(x::PBound{lattice,epochbits})
-  (x.flags == 0x0002) || return false
+  ((x.state & PFLOAT_STDBOUND) == 0) && return false  #traps both allreals and stdbound
   if roundsinf(x)
     (ispositive(x.lower) && ispositive(x.upper)) || (isnegative(x.lower) && isnegative(x.upper))
   else
@@ -28,9 +28,9 @@ function roundszero{lattice, epochbits}(x::PBound{lattice,epochbits})
 end
 
 function isnegative{lattice, epochbits}(x::PBound{lattice, epochbits})
-  if (x.flags == 0x0001)
+  if issingle(x)
     return isnegative(x.lower)
-  elseif (x.flags == 0x0002)
+  elseif isdouble(x)
     return !ispositive(x.lower) && !ispositive(x.upper) && (x.lower < x.upper)
   else
     return false
@@ -38,9 +38,9 @@ function isnegative{lattice, epochbits}(x::PBound{lattice, epochbits})
 end
 
 function ispositive{lattice, epochbits}(x::PBound{lattice, epochbits})
-  if (x.flags == 0x0001)
+  if issingle(x)
     return ispositive(x.lower)
-  elseif (x.flags == 0x0002)
+  elseif isdouble(x)
     return !isnegative(x.lower) && !isnegative(x.upper) && (x.lower < x.upper)
   else
     return false
