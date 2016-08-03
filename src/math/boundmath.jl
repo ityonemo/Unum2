@@ -1,4 +1,5 @@
 #boundmath.jl - math on pbounds.
+import Base: -, +, *, /
 
 +{lattice, epochbits}(x::PBound{lattice, epochbits}, y::PBound{lattice, epochbits}) = add(x,y)
 @pfunction function add(x::PBound, y::PBound)
@@ -104,7 +105,7 @@ end
 
 #x definitely rounds zero, y may or may not round zero.  None of the results
 #go around infinity.
-@pfunction function zero_mul(x::PBound, y::Pbound)
+@pfunction function zero_mul(x::PBound, y::PBound)
   #NB:  We need to check for strange situations with infinity here.
 
   if rounds_zero(y)

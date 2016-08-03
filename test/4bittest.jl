@@ -162,6 +162,12 @@ end
 
 ################################################################################
 
+include("4bittest/mathtestdefs.jl")
+include("4bittest/4bt-test-add.jl")
+
+#test addition
+testop(+, btadd)
+
 #=
 @test Unum2.mul(ptwo, ptwo) == pos_many(PFloat4)
 @test Unum2.mul(ntwo, ntwo) == pos_many(PFloat4)

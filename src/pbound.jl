@@ -20,7 +20,7 @@ type PBound{lattice, epochbits} <: AbstractFloat
   state::UInt16
 end
 
-function PBound{lattice, epochbits}(lower::PFloat{lattice, epochbits}, upper::PFloat{lattice, epochbits})
+function Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, lower::PFloat{lattice, epochbits}, upper::PFloat{lattice, epochbits})
   if (lower == upper)
     PBound{lattice, epochbits}(lower, zero(PFloat{lattice, epochbits}), PFLOAT_SINGLETON)
   else
@@ -28,8 +28,9 @@ function PBound{lattice, epochbits}(lower::PFloat{lattice, epochbits}, upper::PF
   end
 end
 
-PBound{lattice, epochbits}(x::PFloat{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PFloat{lattice, epochbits}), PFLOAT_SINGLETON)
-PBound{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = PBound{lattice, epochbits}
+Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PBound{lattice, epochbits}) = PBound{lattice, epochbits}(x.lower, x.upper, x.state)
+Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PFloat{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PFloat{lattice, epochbits}), PFLOAT_SINGLETON)
+Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}) = PBound{lattice, epochbits}
 # COOL SYMBOLS FOR PBOUNDS
 
 function →{lattice, epochbits}(lower::PFloat{lattice, epochbits}, upper::PFloat{lattice, epochbits})

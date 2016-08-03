@@ -6,8 +6,8 @@ import Base.+
 #adds two numbers x, y
 function add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
 
-  is_inf(x) && return coerce(inf(P), OT)
-  is_inf(y) && return coerce(inf(P), OT)
+  is_inf(x) && return coerce(inf(PFloat{lattice,epochbits}), OT)
+  is_inf(y) && return coerce(inf(PFloat{lattice,epochbits}), OT)
   is_zero(x) && return coerce(y, OT)
   is_zero(y) && return coerce(x, OT)
 

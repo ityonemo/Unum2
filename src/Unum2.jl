@@ -27,6 +27,7 @@ include("synthesize.jl")
 include("properties.jl")
 include("inverses.jl")
 
+include("math/boundmath.jl")
 include("math/tables.jl")
 include("math/cnv.jl")
 include("math/cmp.jl")
