@@ -29,6 +29,7 @@ include("inverses.jl")
 
 include("math/boundmath.jl")
 include("math/tables.jl")
+include("math/iter.jl")
 include("math/cnv.jl")
 include("math/cmp.jl")
 include("math/add.jl")
