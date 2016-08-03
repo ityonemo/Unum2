@@ -18,7 +18,7 @@ function add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
   end
 end
 
-function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{val{output}})
+function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(x) $ isnegative(y))
     exact_arithmetic_subtraction(x, y, OT)
   else
@@ -26,7 +26,7 @@ function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y:
   end
 end
 
-@generated function exact_arithmetic_addition{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{val{output}})
+@generated function exact_arithmetic_addition{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   #first figure out the epoch reduction limit
   add_table       = table_name(lattice, :add)
   add_inv_table   = table_name(lattice, :add_inv)
@@ -160,6 +160,6 @@ end
   end
 end
 
-function inexact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{val{output}})
+function inexact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   return nothing
 end

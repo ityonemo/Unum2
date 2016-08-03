@@ -17,11 +17,11 @@ function sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
   end
 end
 
-@pfunction function exact_sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
+function exact_sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
   if (isnegative(x) $ isnegative(y))
     return exact_arithmetic_addition(x, -(y))
   else
-    exact_arithmetic_subtraction(x, y)
+    return exact_arithmetic_subtraction(x, y)
   end
 end
 

@@ -12,11 +12,11 @@ function noisy_R{output}(P::Type, ::Type{Val{output}})
   end
 end
 
-function mul{lattice, epochbits, output}(x::PFloat, y::PFloat, OT::Type{Val{output}})
-  is_inf(x) && return (is_zero(y) ? noisy_R(P, OT) : coerce(inf(P) , OT)
-  is_inf(y) && return (is_zero(x) ? noisy_R(P, OT) : coerce(inf(P) , OT)
-  is_zero(x) && return (is_inf(y) ? noisy_R(P, OT) : coerce(zero(P), OT)
-  is_zero(y) && return (is_inf(x) ? noisy_R(P, OT) : coerce(zero(P), OT)
+function mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+  is_inf(x) && return (is_zero(y) ? noisy_R(P, OT) : coerce(inf(P), OT))
+  is_inf(y) && return (is_zero(x) ? noisy_R(P, OT) : coerce(inf(P), OT))
+  is_zero(x) && return (is_inf(y) ? noisy_R(P, OT) : coerce(zero(P), OT))
+  is_zero(y) && return (is_inf(x) ? noisy_R(P, OT) : coerce(zero(P), OT))
 
   if isexact(x) & isexact(y)
     exact_mul(x, y, OT)
@@ -26,7 +26,7 @@ function mul{lattice, epochbits, output}(x::PFloat, y::PFloat, OT::Type{Val{outp
 end
 
 
-function exact_mul(x::PFloat, y::PFloat, OT::Type{Val{output}})
+function exact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   if (isinverted(x) $ isinverted(y))
     exact_arithmetic_division(x, multiplicativeinverse(y))
   else
@@ -34,7 +34,7 @@ function exact_mul(x::PFloat, y::PFloat, OT::Type{Val{output}})
   end
 end
 
-function inexact_mul(x::PFloat, y::PFloat, OT::Type{Val{output}})
+function inexact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   return nothing
 end
 
