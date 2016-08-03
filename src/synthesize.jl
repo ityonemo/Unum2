@@ -1,7 +1,7 @@
 #synthesize puts together a PFloat from three components:  sign, epoch, and lvalue
 
 #note that the lvalue might be flipped based on the epoch and the sign.
-@generated function synthesize{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}, negative::Bool, inverted::Bool, epoch::Integer, lvalue)
+@generated function synthesize{lattice, epochbits, output}(T::Type{PFloat{lattice, epochbits}}, negative::Bool, inverted::Bool, epoch::Integer, lvalue, ::Type{Val{output}})
   eshift = latticebits(lattice)
   tshift = 63 - latticebits(lattice) - epochbits
   quote
@@ -16,7 +16,7 @@
 
     #synthesize epoch + lvalue combination.
 
-    @p result
+    coerce(@p result, OT)
   end
 end
 

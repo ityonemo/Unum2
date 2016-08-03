@@ -1,28 +1,41 @@
 #Unum2 multiplication.
 
 import Base.*
-*{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = mul(x,y)
+*{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = mul(x, y, Val{:auto})
 
-@pfunction function mul(x::PFloat, y::PFloat)
-  is_inf(x) && return (is_zero(y) ? R : inf(P))
-  is_inf(y) && return (is_zero(x) ? R : inf(P))
-  is_zero(x) && return (is_inf(y) ? R : zero(P))
-  is_zero(y) && return (is_inf(x) ? R : zero(P))
-
-  if isexact(x) & isexact(y)
-    exact_mul(x, y)
+function noisy_R{output}(P::Type, ::Type{Val{output}})
+  if (output == :auto) || (output == :bound)
+    return allprojectivereals(P)
   else
-    return nothing
-    #inexact_mul(x, y)
+    throw(ArgumentError("output type doesn't support all real values"))
+    return zero(P)  #to keep homoiconicity.
   end
 end
 
-@pfunction function exact_mul(x::PFloat, y::PFloat)
+function mul{lattice, epochbits, output}(x::PFloat, y::PFloat, OT::Type{Val{output}})
+  is_inf(x) && return (is_zero(y) ? noisy_R(P, OT) : coerce(inf(P) , OT)
+  is_inf(y) && return (is_zero(x) ? noisy_R(P, OT) : coerce(inf(P) , OT)
+  is_zero(x) && return (is_inf(y) ? noisy_R(P, OT) : coerce(zero(P), OT)
+  is_zero(y) && return (is_inf(x) ? noisy_R(P, OT) : coerce(zero(P), OT)
+
+  if isexact(x) & isexact(y)
+    exact_mul(x, y, OT)
+  else
+    inexact_mul(x, y, OT)
+  end
+end
+
+
+function exact_mul(x::PFloat, y::PFloat, OT::Type{Val{output}})
   if (isinverted(x) $ isinverted(y))
     exact_arithmetic_division(x, multiplicativeinverse(y))
   else
     exact_arithmetic_multiplication(x, y)
   end
+end
+
+function inexact_mul(x::PFloat, y::PFloat, OT::Type{Val{output}})
+  return nothing
 end
 
 

@@ -1,7 +1,7 @@
 #Unum2 multiplication.
 
 import Base./
-/{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = div(x,y)
+/{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = div(x, y, Val{:auto})
 
 @pfunction function div(x::PFloat, y::PFloat)
   is_inf(x) && return (is_zero(y) ? inf(P) : R)

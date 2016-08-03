@@ -1,24 +1,23 @@
 #Unum2 subtraction
 
 import Base.-
--{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = sub(x,y)
+-{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = sub(x, y, Val{:auto})
 -{lattice, epochbits}(x::PFloat{lattice, epochbits}) = additiveinverse(x)
 
-@pfunction function sub(x::PFloat, y::PFloat)
+function sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
   is_inf(x) && return inf(P)
   is_inf(y) && return inf(P)
   is_zero(x) && return -(y)
   is_zero(y) && return x
 
   if isexact(x) & isexact(y)
-    exact_sub(x, y)
+    exact_sub(x, y, OT)
   else
-    return nothing
-    #inexact_sub(x, y)
+    inexact_sub(x, y, OT)
   end
 end
 
-@pfunction function exact_sub(x::PFloat, y::PFloat)
+@pfunction function exact_sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
   if (isnegative(x) $ isnegative(y))
     return exact_arithmetic_addition(x, -(y))
   else

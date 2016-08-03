@@ -8,7 +8,7 @@
   x_upper_proxy = issingle(x) ? x.lower : x.upper
   y_upper_proxy = issingle(y) ? y.lower : y.upper
 
-  B(add(x.lower, y.lower, :lower), add(x_upper_proxy, y_upper_proxy, :upper))
+  B(add(x.lower, y.lower, __LOWER), add(x_upper_proxy, y_upper_proxy, __UPPER))
 end
 
 -{lattice, epochbits}(x::PBound{lattice, epochbits}) = issingle(x) ? B(-x.lower, x.upper, x.state) : B(-x.upper, -x.lower, x.state)
@@ -36,17 +36,17 @@ end
   x_val = isnegative(x) ? (flip_sign = true; -x) : x
   y_val = isnegative(y) ? (flip_sign $= true; -y) : y
 
-  flip_sign && return B(-mul(x.upper, y.upper, :upper), -mul(x.lower, y.lower, :lower))
-  return B(mul(x.lower, y.lower, :lower), mul(x.upper, y.upper, :upper))
+  flip_sign && return B(-mul(x.upper, y.upper, __UPPER), -mul(x.lower, y.lower, __LOWER))
+  return B(mul(x.lower, y.lower, __LOWER), mul(x.upper, y.upper, __UPPER))
 end
 
 #do a multiplication where we know x is a singleton bound.
 @pfunction function single_mul(x::PBound, y::PBound)
   #first check if y is single.
   if issingle(y)
-    mul(x, y, :bound)
+    mul(x, y, __BOUND)
   else
-    B(mul(x.lower, y.lower, :lower), mul(x.lower, y.upper, :upper))
+    B(mul(x.lower, y.lower, __LOWER), mul(x.lower, y.upper, __UPPER))
   end
 end
 
@@ -72,19 +72,19 @@ __negative_sided(x::PBound) = (!ispositive(x.lower))
     _state = _negative_sided(x) * 1 + isnegative(y) * 2
 
     if (state == 0)
-      B(mul(x.lower, y.lower, :lower), mul(x.upper, y.upper, :upper))
+      B(mul(x.lower, y.lower, __LOWER), mul(x.upper, y.upper, __UPPER))
     elseif (state == 1)
-      B(mul(x.upper, y.lower, :lower), mul(x.lower, y.upper, :upper))
+      B(mul(x.upper, y.lower, __LOWER), mul(x.lower, y.upper, __UPPER))
     elseif (state == 2)
-      B(mul(x.upper, y.lower, :lower), mul(x.lower, y.upper, :upper))
+      B(mul(x.upper, y.lower, __LOWER), mul(x.lower, y.upper, __UPPER))
     else   #state == 3
-      B(mul(x.upper, y.upper, :lower), mul(x.lower, y.lower, :upper))
+      B(mul(x.upper, y.upper, __LOWER), mul(x.lower, y.lower, __UPPER))
     end
   elseif rounds_inf(y)  #now we must check if y rounds infinity.
     #like the double "rounds zero" case, we have to check four possible endpoints.
     #unlinke the "rounds zero" case, the lower ones are positive valued, so that's not "crossed"
-    _l = min(mul(x.lower, y.lower, :lower), mul(x.upper, y.upper, :lower))
-    _u = max(mul(x.lower, y.upper, :lower), mul(x.upper, y.lower, :lower))
+    _l = min(mul(x.lower, y.lower, __LOWER), mul(x.upper, y.upper, __LOWER))
+    _u = max(mul(x.lower, y.upper, __LOWER), mul(x.upper, y.lower, __LOWER))
 
     #construct the result.
     B(_l, _u)
@@ -95,9 +95,9 @@ __negative_sided(x::PBound) = (!ispositive(x.lower))
     # (2, -3) * (-7, -5) -> (15, -10)
 
     if isnegative(y)
-      B(mul(x.upper, y.upper, :lower), mul(x.lower, y.upper, :upper))
+      B(mul(x.upper, y.upper, __LOWER), mul(x.lower, y.upper, __UPPER))
     else
-      B(mul(x.lower, y.lower, :lower), mul(x.upper, y.lower, :upper))
+      B(mul(x.lower, y.lower, __LOWER), mul(x.upper, y.lower, __UPPER))
     end
   end
 end
@@ -110,8 +110,8 @@ end
   if rounds_zero(y)
 
   # when rhs spans zero, we have to check four possible endpoints.
-    _l = min(mul(x.lower, y.upper, :lower), mul(x.upper, y.lower, :lower))
-    _u = max(mul(x.lower, y.lower, :upper), mul(x.upper, y.upper, :upper))
+    _l = min(mul(x.lower, y.upper, __LOWER), mul(x.upper, y.lower, __LOWER))
+    _u = max(mul(x.lower, y.lower, __UPPER), mul(x.upper, y.upper, __UPPER))
 
     #construct the result.
     B(_l, _u)
@@ -119,9 +119,9 @@ end
   # in the case where the rhs doesn't span zero, we must only multiply by the
   # extremum.
   elseif is_positive(y)
-    B(mul(x.lower, y.upper, :lower), mul(x.upper, y.upper, :upper))
+    B(mul(x.lower, y.upper, __LOWER), mul(x.upper, y.upper, __UPPER))
   else #y must be negative
-    B(mul(x.upper, y.lower, :lower), mul(x.lower, y.lower, :upper))
+    B(mul(x.upper, y.lower, __LOWER), mul(x.lower, y.lower, __UPPER))
   end
 end
 

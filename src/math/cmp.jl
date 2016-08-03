@@ -21,10 +21,10 @@ end
   is_inf(y) | is_inf(x) | (@s y) >= (@s x)
 end
 
-@pfunction Base.max(x::PFloat, y::PFloat)
+@pfunction function Base.max(x::PFloat, y::PFloat)
   (x > y) ? x : y
 end
 
-@pfunction Base.min(x::PFloat, y::PFloat)
+@pfunction function Base.min(x::PFloat, y::PFloat)
   (x < y) ? x : y
 end

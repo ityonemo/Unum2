@@ -1,34 +1,32 @@
 #Unum2 addition.
 
 import Base.+
-+{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = add(x,y)
++{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = add(x, y, Val{:auto})
 
 #adds two numbers x, y
-@pfunction function add(x::PFloat, y::PFloat)
+function add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
 
-  is_inf(x) && return inf(P)
-  is_inf(y) && return inf(P)
-  is_zero(x) && return y
-  is_zero(y) && return x
+  is_inf(x) && return coerce(inf(P), OT)
+  is_inf(y) && return coerce(inf(P), OT)
+  is_zero(x) && return coerce(y, OT)
+  is_zero(y) && return coerce(x, OT)
 
   if isexact(x) & isexact(y)
-    exact_add(x, y)
+    exact_add(x, y, OT)
   else
-    return nothing
-    #inexact_mul(x, y)
+    inexact_add(x, y, OT)
   end
 end
 
-@pfunction function exact_add(x::PFloat, y::PFloat)
+function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{val{output}})
   if (isnegative(x) $ isnegative(y))
-    return nothing
-    #exact_arithmetic_subtraction(x, y)
+    exact_arithmetic_subtraction(x, y, OT)
   else
-    exact_arithmetic_addition(x, y)
+    exact_arithmetic_addition(x, y, OT)
   end
 end
 
-@generated function exact_arithmetic_addition{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+@generated function exact_arithmetic_addition{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{val{output}})
   #first figure out the epoch reduction limit
   add_table       = table_name(lattice, :add)
   add_inv_table   = table_name(lattice, :add_inv)
@@ -65,9 +63,9 @@ end
         #(result_value, result_epoch) = (h_epoch > l_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
       end
 
-      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, h_negative, false)
+      ((result_epoch) > $m_epoch) && return coerce(extremum(PFloat{lattice, epochbits}, h_negative, false), OT)
 
-      synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value)
+      return synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
     elseif ((h_inverted) && (l_inverted))
       if (h_epoch == l_epoch)
         result_value = $add_inv_table[h_value >> 1  + 1, l_value >> 1 + 1]
@@ -78,12 +76,12 @@ end
 
       #h_epoch needs to be an Int64
 
-      synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value)
+      return synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
     elseif (h_epoch == 0) && (l_epoch == 0) #h is not inverted, and l is inverted
       result_value = $add_cross_table[h_value >> 1 + 1, l_value >> 1 + 1]
       result_epoch = (result_value > h_value) ? (h_epoch + 1) : h_epoch
 
-      synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value)
+      return synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
     else
       return nothing #for now.
     end
@@ -160,4 +158,8 @@ end
       $add_cross_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
     end
   end
+end
+
+function inexact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{val{output}})
+  return nothing
 end
