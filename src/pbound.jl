@@ -28,7 +28,7 @@ function Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, lower
   end
 end
 
-Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PBound{lattice, epochbits}) = PBound{lattice, epochbits}(x.lower, x.upper, x.state)
+#Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PBound{lattice, epochbits}) = PBound{lattice, epochbits}(x.lower, x.upper, x.state)
 Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PFloat{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PFloat{lattice, epochbits}), PFLOAT_SINGLETON)
 Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}) = PBound{lattice, epochbits}
 # COOL SYMBOLS FOR PBOUNDS
@@ -50,6 +50,12 @@ doc"""
   Unum2.coerce(::PFloat, Val{output}) casts the PFloat into a singleton PBound if the
   desired output is a bound, otherwise, it returns the naked float.
 """
-coerce{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, ::Type{Val{output}}) = (output == :bound) ? PBound(x) : x
+coerce{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, ::Type{Val{output}}) = (output == :bound) ? PBound(x, zero(PFloat{lattice, epochbits}), PFLOAT_SINGLETON) : x
+
+doc"""
+  Unum2.\_auto(::PFloat, ::PFloat) casts the PFloat into a singleton PBound if the
+  desired output is auto, otherwise, it returns the naked float.
+"""
+_auto{lattice, epochbits}(l::PFloat{lattice, epochbits}, u::PFloat{lattice, epochbits}) = (l == u) ? l : PBound(l, u, PFLOAT_STDBOUND)
 
 export PBound, →, ▾, ∅, ℝ, ℝᵖ

@@ -7,8 +7,7 @@ synthesize{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}, negative, in
   tshift = 63 - latticebits(lattice) - epochbits
   quote
     flipsign = negative $ inverted
-
-    result::Int64 = ((epoch << $eshift) | (lvalue))  << $tshift
+    result::Int64 = @s(((epoch << $eshift) | (lvalue))  << $tshift)
     result |= 0x4000_0000_0000_0000
     result *= (flipsign ? -1 : 1)
     result &= @s magmask(T)

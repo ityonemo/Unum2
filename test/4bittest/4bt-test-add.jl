@@ -9,7 +9,7 @@ btadd = [
 #inf +...                                                                                            |
   ▾(looo)  ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)  ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)      ▾(looo)     ▾(looo)     ▾(looo);
 #(inf -2) + ...                                                                                      |
-  ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)  lool → loll  lool → loll  lool → llol  lool → llol  lool → llll  lool → llll  lool → olll;
+  ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)  lool → loll  lool → loll  lool → loll  lool → loll  lool → llll  lool → llll  lool → olll;
 #-2 + ...                                                                                            |
   ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lolo)  ▾(loll)      ▾(loll)      ▾(loll)      ▾(lloo)      llol → llll  ▾(oooo)      oool → olll;
 #(-2 -1) + ...                                                                                       |

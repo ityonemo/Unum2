@@ -45,7 +45,7 @@ end
 @pfunction function single_mul(x::PBound, y::PBound)
   #first check if y is single.
   if issingle(y)
-    mul(x, y, __BOUND)
+    mul(x.lower, y.lower, __BOUND)
   else
     B(mul(x.lower, y.lower, __LOWER), mul(x.lower, y.upper, __UPPER))
   end
@@ -72,11 +72,11 @@ __negative_sided(x::PBound) = (!ispositive(x.lower))
 
     _state = _negative_sided(x) * 1 + isnegative(y) * 2
 
-    if (state == 0)
+    if (_state == 0)
       B(mul(x.lower, y.lower, __LOWER), mul(x.upper, y.upper, __UPPER))
-    elseif (state == 1)
+    elseif (_state == 1)
       B(mul(x.upper, y.lower, __LOWER), mul(x.lower, y.upper, __UPPER))
-    elseif (state == 2)
+    elseif (_state == 2)
       B(mul(x.upper, y.lower, __LOWER), mul(x.lower, y.upper, __UPPER))
     else   #state == 3
       B(mul(x.upper, y.upper, __LOWER), mul(x.lower, y.lower, __UPPER))

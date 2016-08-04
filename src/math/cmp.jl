@@ -3,7 +3,7 @@
 #unfortunately all of these things need to be overloaded, because of the special
 #nature of infinity.
 
-import Base: <, >, <=, >=
+import Base: <, >, <=, >=, ==
 
 @pfunction function <(x::PFloat, y::PFloat)
   is_inf(y) | is_inf(x) | (@s x) < (@s y)
@@ -27,4 +27,18 @@ end
 
 @pfunction function Base.min(x::PFloat, y::PFloat)
   (x < y) ? x : y
+end
+
+@pfunction function ==(x::PBound, y::PBound)
+  if x.state == PFLOAT_NULLSET
+    y.state == PFLOAT_NULLSET
+  elseif x.state == PFLOAT_SINGLETON
+    (x.lower == y.lower)
+  elseif x.state == PFLOAT_STDBOUND
+    (x.lower == y.lower) && (x.upper == y.upper)
+  elseif x.state == PFLOAT_ALLPREALS
+    y.state == PFLOAT_ALLPREALS
+  else
+    false
+  end
 end

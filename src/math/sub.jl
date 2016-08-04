@@ -10,22 +10,10 @@ function sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
   is_zero(x) && return -(y)
   is_zero(y) && return x
 
-  if isexact(x) & isexact(y)
-    exact_sub(x, y, OT)
-  else
-    inexact_sub(x, y, OT)
-  end
+  add(x, -y, OT)
 end
 
-function exact_sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
-  if (isnegative(x) $ isnegative(y))
-    return exact_arithmetic_addition(x, -(y))
-  else
-    return exact_arithmetic_subtraction(x, y)
-  end
-end
-
-@generated function exact_arithmetic_subtraction{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+@generated function exact_arithmetic_subtraction{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
   #first figure out the epoch reduction limit
   sub_table             = table_name(lattice, :sub)
   sub_epoch_table       = table_name(lattice, :sub_epoch)
@@ -43,6 +31,8 @@ end
   isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_table(Val{lattice})
   isdefined(Unum2, sub_cross_table) || create_crossing_subtraction_table(Val{lattice})
   quote
+    is_zero(x) && return -y
+    is_zero(y) && return x
     #first, we should sort the two numbers into higher and lower.
     if x == y
       return zero(PFloat{lattice, epochbits})

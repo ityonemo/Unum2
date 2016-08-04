@@ -164,37 +164,9 @@ end
 
 include("4bittest/mathtestdefs.jl")
 include("4bittest/4bt-test-add.jl")
+include("4bittest/4bt-test-mul.jl")
 
 #test addition
 testop(+, btadd)
-
-#=
-@test Unum2.mul(ptwo, ptwo) == pos_many(PFloat4)
-@test Unum2.mul(ntwo, ntwo) == pos_many(PFloat4)
-@test Unum2.mul(ptwo, ntwo) == neg_many(PFloat4)
-@test Unum2.mul(ntwo, ptwo) == neg_many(PFloat4)
-
-@test Unum2.mul(phlf, phlf) == pos_few(PFloat4)
-@test Unum2.mul(nhlf, nhlf) == pos_few(PFloat4)
-@test Unum2.mul(phlf, nhlf) == neg_few(PFloat4)
-@test Unum2.mul(nhlf, phlf) == neg_few(PFloat4)
-
-################################################################################
-@test Unum2.div(ptwo, ptwo) == pone
-@test Unum2.div(pone, phlf) == ptwo
-@test Unum2.div(pone, ptwo) == phlf
-@test Unum2.div(phlf, ptwo) == pos_few(PFloat4)
-################################################################################
-
-@test Unum2.add(ptwo, ptwo) == pos_many(PFloat4)
-@test Unum2.add(pone, pone) == ptwo
-@test Unum2.add(phlf, phlf) == pone
-
-################################################################################
-
-@test Unum2.sub(ptwo, ptwo) == zero(PFloat4)
-@test Unum2.sub(ptwo, pone) == pone
-@test Unum2.sub(ntwo, ntwo) == zero(PFloat4)
-@test Unum2.sub(ntwo, neg_one(PFloat4)) == neg_one(PFloat4)
-@test Unum2.sub(pone, phlf) == phlf
-=#
+#test multiplication
+testop(*, btmul)

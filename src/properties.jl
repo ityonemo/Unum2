@@ -8,6 +8,15 @@ isinverted{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~sign
 isexact{lattice, epochbits}(x::PFloat{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) == 0
 isulp{lattice, epochbits}(x::PFloat{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) != 0
 
+@generated function is_neg_many{lattice, epochbits}(x::PFloat{lattice, epochbits})
+  magic_value = sign_mask | incrementor(x)
+  :((@i x) == $magic_value)
+end
+@generated function is_pos_many{lattice, epochbits}(x::PFloat{lattice, epochbits})
+  magic_value = sign_mask - incrementor(x)
+  :((@i x) == $magic_value)
+end
+
 export isnegative, ispositive, isinverted
 
 #pbound properties.

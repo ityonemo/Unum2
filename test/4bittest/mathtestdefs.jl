@@ -23,14 +23,13 @@ function testop(op, expected)
     for j=1:16
       try
         res = op(▾(p4vec[i]), ▾(p4vec[j]))
-        #=
-        if !isequal(res, expected[i, j])
-          println("$i, $j: $(bits(p4vec[i])) $op $(bits(p4vec[j])) failed as $(bits(res)); should be $(bits(expected[i,j]))")
+
+        if (res != expected[i, j])
+          println("$i, $j: $(p4vec[i]) $op $(p4vec[j]) failed as $(res); should be $(expected[i,j])")
           fails += 1
         end
-        =#
       catch e
-        println("$i, $j: $(bits(p4vec[i])) $op $(bits(p4vec[j])) failed due to thrown error: $e")
+        println("$i, $j: $(p4vec[i]) $op $(p4vec[j]) failed due to thrown error: $e")
         bt = catch_backtrace()
         s = sprint(io->Base.show_backtrace(io, bt))
         println("$s")
