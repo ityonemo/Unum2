@@ -9,6 +9,9 @@ const PFLOAT_ALLPREALS = 0x0003 #all projective reals
 #create a series of value types which can specify the nature of the output.
 const __LOWER = Val{:lower}  #if the result is a PBound, only output the lower PFloat.
 const __UPPER = Val{:upper}  #if the result is a PBound, only output the upper PFloat.
+const __INNER = Val{:inner}  #if the result is a PBound, only output the inner PFloat. (only use for multiplication)
+const __OUTER = Val{:outer}  #if the result is a PBound, only output the outer PFloat. (only use for multiplication)
+
 const __BOUND = Val{:bound}  #if the result is a PBound, output the entire PBound.  Promote PFloats to PBound
 const __AUTO  = Val{:auto}   #output a PFloat or a PBound as desired.
 #note the __AUTO case will result in the worst performance, because the julia

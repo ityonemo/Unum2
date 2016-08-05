@@ -13,9 +13,9 @@ btadd = [
 #-2 + ...                                                                                            |
   ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      ▾(lolo)  ▾(loll)      ▾(loll)      ▾(loll)      ▾(lloo)      llol → llll  ▾(oooo)      oool → olll;
 #(-2 -1) + ...                                                                                       |
-  ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      lool → loll  lool → loll  lool → loll  ▾(loll)  loll → llol  loll → llll  loll → llll  llol → llll  llol → ooll  oool → ooll  oool → olll;
+  ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lool)      lool → loll  lool → loll  lool → loll  ▾(loll)  loll → llol  loll → llol  loll → llll  llol → llll  llol → ooll  oool → ooll  oool → olll;
 #-1 + ...                                                                                            |
-  ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lolo)      lool → loll  ▾(loll)      ▾(loll)      ▾(lloo)  ▾(llol)      ▾(lllo)      ▾(llll)      ▾(oooo)      oooo → ooll  ▾(oloo)      olol → olll;
+  ▾(looo)  ▾(lool)      ▾(lool)      ▾(lool)      ▾(lolo)      ▾(loll)      ▾(loll)      ▾(loll)      ▾(lloo)  ▾(llol)      ▾(lllo)      ▾(llll)      ▾(oooo)      oool → ooll  ▾(oloo)      olol → olll;
 #(-1 -0.5) + ...                                                                                     |
   ▾(looo)  ▾(lool)      ▾(lool)      lool → loll  ▾(loll)      ▾(loll)      ▾(loll)      loll → llol  ▾(llol)  llol → llll  ▾(llll)      llll → oool  ▾(oool)      oool → olol  ▾(olol)      olol → olll;
 #-0.5 + ...                                                                                          |
@@ -33,9 +33,9 @@ btadd = [
 #1 + ...                                                                                             |
   ▾(looo)  lool → loll  ▾(lloo)      llol → llll  ▾(oooo)      ▾(oool)      ▾(oolo)      ▾(ooll)      ▾(oloo)  ▾(olol)      ▾(olol)      ▾(olol)      ▾(ollo)      ▾(olll)      ▾(olll)     ▾(olll);
 #(1 2) + ...                                                                                         |
-  ▾(looo)  lool → llll  loll → llll  loll → ooll  oool → ooll  oool → olol  ooll → olol  ooll → olol  ▾(olol)  olol → olll  olol → olll  ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)     ▾(olll);
+  ▾(looo)  lool → llll  llol → llll  llol → ooll  oool → ooll  oool → olol  ooll → olol  ooll → olol  ▾(olol)  olol → olll  olol → olll  olol → olll  ▾(olll)      ▾(olll)      ▾(olll)     ▾(olll);
 #2 + ...                                                                                             |
-  ▾(looo)  lool → oool  ▾(oooo)      oool → olol  ▾(oloo)      ▾(olol)      ▾(olol)      ▾(olol)      ▾(ollo)  ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)     ▾(olll);
+  ▾(looo)  lool → llll  ▾(oooo)      oool → ooll  ▾(oloo)      ▾(olol)      ▾(olol)      ▾(olol)      ▾(ollo)  ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)     ▾(olll);
 #(2 inf) + ...                                                                                       |
   ▾(looo)  lool → olll  oool → olll  oool → olll  olol → olll  olol → olll  olol → olll  olol → olll  ▾(olll)  ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)      ▾(olll)     ▾(olll);
 ]

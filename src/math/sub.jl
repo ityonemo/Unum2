@@ -34,25 +34,29 @@ end
     is_zero(x) && return -y
     is_zero(y) && return x
     #first, we should sort the two numbers into higher and lower.
-    if x == y
-      return zero(PFloat{lattice, epochbits})
-    else
-      (h, l) = ((x > y) $ (isnegative(x))) ? (x, y) : (y, x)
-    end
 
-    (h_negative, h_inverted, h_epoch, h_value) = decompose(h)
-    (l_negative, l_inverted, l_epoch, l_value) = decompose(l)
+    (x == y) && return zero(PFloat{lattice, epochbits})
+
+    flipped = isnegative(x) $ (x < y)
+
+    (outer, inner) = (flipped) ? (y, x) : (x, y)
+
+    (o_negative, o_inverted, o_epoch, o_value) = decompose(outer)
+    (i_negative, i_inverted, i_epoch, i_value) = decompose(inner)
+
+    #go ahead and flip o_negative (which determines result sign) if necessary
+    o_negative $= flipped
 
     result_epoch::Int64
     #for now, only support adding a non-inverted value to a non-inverted value.
-    if (!h_inverted) && (!l_inverted)
+    if (!o_inverted) && (!i_inverted)
       #for now, only support adding things that are in the same epoch.
-      if h_epoch == l_epoch
-        result_value = $sub_table[h_value >> 1 + 1, l_value >> 1 + 1]
-        result_epoch = @s(h_epoch) - @s($sub_epoch_table[h_value >> 1 + 1, l_value >> 1 + 1])
+      if o_epoch == i_epoch
+        result_value = $sub_table[o_value >> 1 + 1, i_value >> 1 + 1]
+        result_epoch = @s(o_epoch) - @s($sub_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
       else
         return nothing #for now.
-        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
+        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequai_epoch(x, y) : add_unequai_epoch(y, x)
       end
 
       result_inverted = false
@@ -64,27 +68,27 @@ end
       end
 
       #check to see if we've gone really small.
-      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, h_negative, true)
+      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
 
-      synthesize(PFloat{lattice, epochbits}, h_negative, result_inverted, result_epoch, result_value)
+      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
 
-    elseif (h_inverted) && (l_inverted)
+    elseif (o_inverted) && (i_inverted)
       #for now, only support adding things that are in the same epoch.
-      if h_epoch == l_epoch
-        result_value = $sub_inv_table[h_value >> 1 + 1, l_value >> 1 + 1]
-        result_epoch = @s(h_epoch) + @s($sub_inv_epoch_table[h_value >> 1 + 1, l_value >> 1 + 1])
+      if o_epoch == i_epoch
+        result_value = $sub_inv_table[o_value >> 1 + 1, i_value >> 1 + 1]
+        result_epoch = @s(o_epoch) + @s($sub_inv_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
       else
         return nothing #for now.
-        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
+        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequai_epoch(x, y) : add_unequai_epoch(y, x)
       end
 
       #check to see if we've gotten really small.
-      (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, h_negative, true)
+      (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
 
-      synthesize(PFloat{lattice, epochbits}, h_negative, true, result_epoch, result_value)
-    elseif ((h_epoch == 0) && (l_epoch == 0))
-      result_value = $sub_cross_table[h_value >> 1 + 1, l_value >> 1 + 1]
-      result_epoch = - @s($sub_cross_epoch_table[h_value >> 1 + 1, l_value >> 1 + 1])
+      synthesize(PFloat{lattice, epochbits}, o_negative, true, result_epoch, result_value)
+    elseif ((o_epoch == 0) && (i_epoch == 0))
+      result_value = $sub_cross_table[o_value >> 1 + 1, i_value >> 1 + 1]
+      result_epoch = - @s($sub_cross_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
 
       result_inverted = false
       #may need to reverse the orientation on the result.
@@ -95,9 +99,9 @@ end
       end
 
       #check to see if we've gone really small.
-      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, h_negative, true)
+      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
 
-      synthesize(PFloat{lattice, epochbits}, h_negative, result_inverted, result_epoch, result_value)
+      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
     else
     end
   end
@@ -106,7 +110,7 @@ end
 ################################################################################
 # SUBTRACTION TABLES
 
-function search_epochs(true_value, pivot_value)
+function searco_epochs(true_value, pivot_value)
   (true_value <= 0.0) && throw(ArgumentError("error ascertaining epoch for value $true_value"))
   epoch_delta = 0
   while (true_value < 1.0)
@@ -136,7 +140,7 @@ end
         true_value = ((idx == 0) ? 1 : lattice_values[idx]) -
                      ((idx2 == 0) ? 1 : lattice_values[idx2])
         #decompose the result into an epoch and a
-        (epoch_delta, true_value) = search_epochs(true_value, pivot_value)
+        (epoch_delta, true_value) = searco_epochs(true_value, pivot_value)
         $sub_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
         $sub_epoch_table[idx + 1, idx2 + 1] = @i epoch_delta
       else
@@ -168,7 +172,7 @@ end
         true_value = 1/((idx == 0) ? 1 : 1/lattice_values[idx]) -
                      1/((idx2 == 0) ? 1 : 1/lattice_values[idx2])
         #decompose the result into an epoch and a
-        (epoch_delta, true_value) = search_epochs(true_value, pivot_value)
+        (epoch_delta, true_value) = searco_epochs(true_value, pivot_value)
         $sub_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
         $sub_inv_epoch_table[idx + 1, idx2 + 1] = @i epoch_delta
       else
@@ -202,7 +206,7 @@ end
         true_value = ((idx == 0) ? 1 : lattice_values[idx]) -
                      ((idx2 == 0) ? 1 : 1/lattice_values[idx2])
         #decompose the result into an epoch and a
-        (epoch_delta, true_value) = search_epochs(true_value, pivot_value)
+        (epoch_delta, true_value) = searco_epochs(true_value, pivot_value)
         $sub_cross_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
         $sub_cross_epoch_table[idx + 1, idx2 + 1] = @i epoch_delta
       end

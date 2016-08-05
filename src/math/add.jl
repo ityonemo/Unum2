@@ -20,7 +20,7 @@ end
 
 function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(x) $ isnegative(y))
-    exact_arithmetic_subtraction(x, y, OT)
+    exact_arithmetic_subtraction(x, -y, OT)
   else
     exact_arithmetic_addition(x, y, OT)
   end
@@ -137,7 +137,7 @@ end
       true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) +
                    ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
       #first check to see if the true_value corresponds to the pivot value.
-      (true_value >= pivot_value) && (true_value /= pivot_value)
+      (true_value < 1) && (true_value *= pivot_value)
 
       $add_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
     end
@@ -178,8 +178,8 @@ end
     end
   else
     quote
-      _l = (is_neg_many(x) || is_neg_many(y)) ? neg_many(PFloat{lattice, epochbits}) : upperulp(exact_add(glb(x), glb(y), OT))
-      _u = (is_pos_many(x) || is_pos_many(y)) ? pos_many(PFloat{lattice, epochbits}) : lowerulp(exact_add(lub(x), lub(y), OT))
+      _l = inexact_add(x, y, Val{:lower})
+      _u = inexact_add(x, y, Val{:upper})
 
       (output == :bound) ? PBound{lattice, epochbits}(_l, _u) : _auto(_l, _u)
     end

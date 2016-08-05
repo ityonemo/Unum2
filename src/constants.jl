@@ -20,6 +20,8 @@ export neg_one
 
 is_zero(x::PFloat) = @i(x) == pfloat_zero
 is_inf(x::PFloat) = @i(x) == pfloat_inf
+is_one(x::PFloat) = @i(x) == pfloat_one
+is_neg_one(x::PFloat) = @i(x) == pfloat_neg_one
 
 ################################################################################
 # infinite and infinitesimal ulps

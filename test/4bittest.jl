@@ -37,7 +37,7 @@ end
 @test Unum2.decompose(p4n_many) == (true,  false, z64, 0x0000_0000_0000_0003)
 @test Unum2.decompose(p4n_two ) == (true,  false, z64, 0x0000_0000_0000_0002)
 @test Unum2.decompose(p4n_much) == (true,  false, z64, 0x0000_0000_0000_0001)
-@test Unum2.decompose(p4n_one ) == (true,  true,  z64, 0x0000_0000_0000_0000)  #NB:  negative one results as inverted when decomposed.
+@test Unum2.decompose(p4n_one ) == (true,  false, z64, 0x0000_0000_0000_0000)
 @test Unum2.decompose(p4n_most) == (true,  true,  z64, 0x0000_0000_0000_0001)
 @test Unum2.decompose(p4n_half) == (true,  true,  z64, 0x0000_0000_0000_0002)
 @test Unum2.decompose(p4n_some) == (true,  true,  z64, 0x0000_0000_0000_0003)

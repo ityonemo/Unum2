@@ -1,19 +1,18 @@
-const sign_mask    = 0x8000_0000_0000_0000
-const inv_mask     = 0x4000_0000_0000_0000
-const z64          = 0x0000_0000_0000_0000
+const SIGN_MASK    = 0x8000_0000_0000_0000
+const INV_MASK     = 0x4000_0000_0000_0000
 
-isnegative{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~sign_mask) != 0) & (z64 != (sign_mask & (@i x)))
-ispositive{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~sign_mask) != 0) & (z64 == (sign_mask & (@i x)))
-isinverted{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~sign_mask) != 0) & ((z64 != (inv_mask & (@i x))) == (z64 != (sign_mask & (@i x))))
+isnegative{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & (z64 != (SIGN_MASK & (@i x)))
+ispositive{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & (z64 == (SIGN_MASK & (@i x)))
+isinverted{lattice, epochbits}(x::PFloat{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & ((z64 != (INV_MASK & (@i x))) == (z64 != (SIGN_MASK & (@i x))))
 isexact{lattice, epochbits}(x::PFloat{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) == 0
 isulp{lattice, epochbits}(x::PFloat{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) != 0
 
 @generated function is_neg_many{lattice, epochbits}(x::PFloat{lattice, epochbits})
-  magic_value = sign_mask | incrementor(x)
+  magic_value = SIGN_MASK | incrementor(x)
   :((@i x) == $magic_value)
 end
 @generated function is_pos_many{lattice, epochbits}(x::PFloat{lattice, epochbits})
-  magic_value = sign_mask - incrementor(x)
+  magic_value = SIGN_MASK - incrementor(x)
   :((@i x) == $magic_value)
 end
 

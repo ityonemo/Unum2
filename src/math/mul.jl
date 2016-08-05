@@ -17,6 +17,10 @@ function mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
   is_inf(y) && return (is_zero(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PFloat{lattice, epochbits}), OT))
   is_zero(x) && return (is_inf(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PFloat{lattice, epochbits}), OT))
   is_zero(y) && return (is_inf(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PFloat{lattice, epochbits}), OT))
+  is_one(x) && return coerce(y, OT)
+  is_one(y) && return coerce(x, OT)
+  is_neg_one(x) && return coerce(-y, OT)
+  is_neg_one(y) && return coerce(-x, OT)
 
   if isexact(x) & isexact(y)
     exact_mul(x, y, OT)
@@ -34,8 +38,42 @@ function exact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y:
   end
 end
 
-function inexact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
-  return nothing
+function __resultparity{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+  return (((@i x) $ (@i y)) & SIGN_MASK) == 0
+end
+
+@generated function inexact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+  if output == :lower
+    quote
+      #recast this as "inner/outer" versions
+      upperulp(__resultparity(x,y) ? inexact_mul(x, y, __INNER) : inexact_mul(x, y, __OUTER))
+    end
+  elseif output == :upper
+    quote
+      #recast this as "inner/outer" versions
+      lowerulp(__resultparity(x,y) ? inexact_mul(x, y, __OUTER) : inexact_mul(x, y, __INNER))
+    end
+  elseif output == :inner
+    quote
+      _inner_x = ispositive(x) ? glb(x) : lub(x)
+      _inner_y = ispositive(y) ? glb(y) : lub(y)
+      exact_mul(_inner_x, _inner_y, OT)
+    end
+  elseif output == :outer
+    quote
+      _outer_x = ispositive(x) ? lub(x) : glb(x)
+      _outer_y = ispositive(y) ? lub(y) : glb(y)
+
+      exact_mul(_outer_x, _outer_y, OT)
+    end
+  else
+    quote
+      _l = inexact_mul(x, y, Val{:lower})
+      _u = inexact_mul(x, y, Val{:upper})
+
+      (output == :bound) ? PBound{lattice, epochbits}(_l, _u) : _auto(_l, _u)
+    end
+  end
 end
 
 
@@ -46,6 +84,15 @@ end
   #create the multiplication table, if necessary.
   isdefined(Unum2, mult_table) || create_multiplication_table(Val{lattice})
   quote
+    is_inf(x) && return inf(PFloat{lattice, epochbits})
+    is_inf(y) && return inf(PFloat{lattice, epochbits})
+    is_zero(x) && return zero(PFloat{lattice, epochbits})
+    is_zero(y) && return zero(PFloat{lattice, epochbits})
+    is_one(x) && return y
+    is_one(y) && return x
+    is_neg_one(x) && return -y
+    is_neg_one(y) && return -x
+
     x_negative = y_negative = x_inverted = y_inverted= false
     x_epoch = y_epoch = x_value = y_value = z64
 

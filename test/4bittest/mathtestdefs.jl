@@ -35,9 +35,6 @@ function testop(op, expected)
         println("$s")
         fails += 1
       end
-      if fails == 15
-        throw(ArgumentError("done with 15 errors."))
-      end
     end
   end
   println("$op $fails / 256 = $(100 * fails/256)% failure!")

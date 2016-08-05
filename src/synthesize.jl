@@ -12,7 +12,7 @@ synthesize{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}, negative, in
     result *= (flipsign ? -1 : 1)
     result &= @s magmask(T)
 
-    result |= @s(sign_mask * negative)
+    result |= @s(SIGN_MASK * negative)
 
     #synthesize epoch + lvalue combination.
     coerce((@p result), OT)
@@ -24,9 +24,12 @@ end
   tshift = eshift - latticebits(lattice)
   lmask = latticemask(epochbits)
   quote
+
+    ((@i p) == pfloat_neg_one) && return (true, false, 0, z64)
+
     ivalue = @i p
-    negative = (sign_mask & ivalue) != z64
-    inverted = ((inv_mask & ivalue) == z64) $ negative
+    negative = (SIGN_MASK & ivalue) != z64
+    inverted = ((INV_MASK & ivalue) == z64) $ negative
     tvalue = @i(((negative != inverted) ? -1 : 1) * @s p)
     epoch::Int64 = @s((tvalue & magnitude_mask) >>> $eshift)
     lvalue = (tvalue & $lmask) >> $tshift

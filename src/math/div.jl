@@ -2,6 +2,7 @@
 
 import Base./
 /{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = div(x, y, Val{:auto})
+/{lattice, epochbits}(x::PFloat{lattice, epochbits}) = additiveinverse(x)
 
 @pfunction function div(x::PFloat, y::PFloat)
   is_inf(x) && return (is_zero(y) ? inf(P) : R)
@@ -38,8 +39,14 @@ end
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
-    x_negative = y_negative = x_inverted = y_inverted= false
-    x_epoch = y_epoch = x_value = y_value = z64
+    is_inf(x) && return inf(PFloat{lattice, epochbits})
+    is_inf(y) && return zero(PFloat{lattice, epochbits})
+    is_zero(x) && return zero(PFloat{lattice, epochbits})
+    is_zero(y) && return inf(PFloat{lattice, epochbits})
+    is_one(x) && return /(y)
+    is_one(y) && return x
+    is_neg_one(x) && return -(/(y))
+    is_neg_one(y) && return -x
 
     (x_negative, x_inverted, x_epoch, x_value) = decompose(x)
     (y_negative, y_inverted, y_epoch, y_value) = decompose(y)
