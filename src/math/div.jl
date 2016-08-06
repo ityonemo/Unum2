@@ -2,7 +2,7 @@
 
 import Base./
 /{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = div(x, y, Val{:auto})
-/{lattice, epochbits}(x::PFloat{lattice, epochbits}) = additiveinverse(x)
+/{lattice, epochbits}(x::PFloat{lattice, epochbits}) = multiplicativeinverse(x)
 
 @pfunction function div(x::PFloat, y::PFloat)
   is_inf(x) && return (is_zero(y) ? inf(P) : R)

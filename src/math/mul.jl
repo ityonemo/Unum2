@@ -46,6 +46,8 @@ end
   if output == :lower
     quote
       #recast this as "inner/outer" versions
+      #println(__resultparity(x,y))
+
       upperulp(__resultparity(x,y) ? inexact_mul(x, y, __INNER) : inexact_mul(x, y, __OUTER))
     end
   elseif output == :upper
@@ -57,7 +59,10 @@ end
     quote
       _inner_x = ispositive(x) ? glb(x) : lub(x)
       _inner_y = ispositive(y) ? glb(y) : lub(y)
-      exact_mul(_inner_x, _inner_y, OT)
+
+      res = exact_mul(_inner_x, _inner_y, OT)
+      #println(res)
+      res
     end
   elseif output == :outer
     quote
