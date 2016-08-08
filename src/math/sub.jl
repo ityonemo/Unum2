@@ -29,7 +29,7 @@ end
   isdefined(Unum2, inv_table)       || create_inversion_table(Val{lattice})
   isdefined(Unum2, sub_table)       || create_subtraction_table(Val{lattice})
   isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_table(Val{lattice})
-  isdefined(Unum2, sub_cross_table) || create_crossing_subtraction_table(Val{lattice})
+  isdefined(Unum2, sub_cross_table) || create_crossed_subtraction_table(Val{lattice})
   quote
     is_zero(x) && return -y
     is_zero(y) && return x
@@ -110,7 +110,7 @@ end
 ################################################################################
 # SUBTRACTION TABLES
 
-function searco_epochs(true_value, pivot_value)
+function search_epochs(true_value, pivot_value)
   (true_value <= 0.0) && throw(ArgumentError("error ascertaining epoch for value $true_value"))
   epoch_delta = 0
   while (true_value < 1.0)
@@ -140,7 +140,7 @@ end
         true_value = ((idx == 0) ? 1 : lattice_values[idx]) -
                      ((idx2 == 0) ? 1 : lattice_values[idx2])
         #decompose the result into an epoch and a
-        (epoch_delta, true_value) = searco_epochs(true_value, pivot_value)
+        (epoch_delta, true_value) = search_epochs(true_value, pivot_value)
         $sub_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
         $sub_epoch_table[idx + 1, idx2 + 1] = @i epoch_delta
       else
@@ -169,10 +169,9 @@ end
 
     for idx = 0:l, idx2 = 0:l
       if (idx < idx2)
-        true_value = 1/((idx == 0) ? 1 : 1/lattice_values[idx]) -
-                     1/((idx2 == 0) ? 1 : 1/lattice_values[idx2])
+        true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) - ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
         #decompose the result into an epoch and a
-        (epoch_delta, true_value) = searco_epochs(true_value, pivot_value)
+        (epoch_delta, true_value) = search_epochs(true_value, pivot_value)
         $sub_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
         $sub_inv_epoch_table[idx + 1, idx2 + 1] = @i epoch_delta
       else
@@ -183,7 +182,7 @@ end
   end
 end
 
-@generated function create_crossing_subtraction_table{lattice}(::Type{Val{lattice}})
+@generated function create_crossed_subtraction_table{lattice}(::Type{Val{lattice}})
   sub_cross_table       = table_name(lattice, :sub_cross)
   sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
   #we need two tables, the subtraction table and the subtraction epoch table.
@@ -206,7 +205,7 @@ end
         true_value = ((idx == 0) ? 1 : lattice_values[idx]) -
                      ((idx2 == 0) ? 1 : 1/lattice_values[idx2])
         #decompose the result into an epoch and a
-        (epoch_delta, true_value) = searco_epochs(true_value, pivot_value)
+        (epoch_delta, true_value) = search_epochs(true_value, pivot_value)
         $sub_cross_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
         $sub_cross_epoch_table[idx + 1, idx2 + 1] = @i epoch_delta
       end
