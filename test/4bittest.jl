@@ -170,3 +170,5 @@ include("4bittest/4bt-test-mul.jl")
 testop(+, btadd)
 #test multiplication
 testop(*, btmul)
+
+include("4bittest/4bt-test-bounds.jl")

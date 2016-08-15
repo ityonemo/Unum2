@@ -83,11 +83,11 @@ end
 
 
 @generated function exact_arithmetic_multiplication{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
-  mult_table = Symbol("__$(lattice)_mult_table")
+  mul_table = table_name(lattice, :mul)
   m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
-  isdefined(Unum2, mult_table) || create_multiplication_table(Val{lattice})
+  isdefined(Unum2, mul_table) || create_multiplication_table(Val{lattice})
   quote
     is_inf(x) && return inf(PFloat{lattice, epochbits})
     is_inf(y) && return inf(PFloat{lattice, epochbits})
@@ -112,7 +112,7 @@ end
       res_value = x_value
     else
       #do a lookup.
-      res_value = $mult_table[x_value >> 1, y_value >> 1]
+      res_value = $mul_table[x_value >> 1, y_value >> 1]
       #check to see if we need to go to a higher epoch.
       (res_value < x_value) && (res_epoch += 1)
     end
@@ -129,7 +129,7 @@ end
 #I didn't want this to be a generated function, but it was the cleanest way to
 #generate and use the new sybol.
 @generated function create_multiplication_table{lattice}(::Type{Val{lattice}})
-  mult_table = Symbol("__$(lattice)_mult_table")
+  mult_table = Symbol("__$(lattice)_mul_table")
   quote
     #store the lattice values and the pivot values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]

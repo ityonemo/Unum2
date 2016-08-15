@@ -2,7 +2,7 @@
 
 #create a series of symbols which are effectively state symbols.
 const PFLOAT_NULLSET   = 0x0000 #no values
-const PFLOAT_SINGLETON = 0x0001 #a single value
+const PFLOAT_SINGLETON = 0x0001 #a SINGLETON value
 const PFLOAT_STDBOUND  = 0x0002 #two values in a standard bound
 const PFLOAT_ALLPREALS = 0x0003 #all projective reals
 
