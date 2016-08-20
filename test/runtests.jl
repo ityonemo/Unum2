@@ -3,13 +3,15 @@ using Base.Test
 
 include("testtools.jl")
 include("4bittest.jl")
-
+include("5bittest.jl")
 
 #=
-import_lattice(:PFloat4)
-x = ▾(PFloat4(-3))
-y = ▾(PFloat4(-1.5))
+import_lattice(:PFloat5)
+include("5bittest/5btdefs.jl")
+
+x = PFloat5(1/8)
+y = PFloat5(1/10)
 println(x)
 println(y)
-println(x * y)
+println(x - y)
 =#

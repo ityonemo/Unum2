@@ -25,6 +25,12 @@ issingle{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT
 isdouble{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT_STDBOUND)
 ispreals{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PFLOAT_ALLPREALS)
 
+#property coercion
+set_empty!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PFLOAT_NULLSET)
+set_single!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PFLOAT_SINGLETON)
+set_double!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PFLOAT_STDBOUND)
+set_preals!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PFLOAT_ALLPREALS)
+
 roundsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PFLOAT_ALLPREALS) || (x.state == PFLOAT_STDBOUND) && (x.upper < x.lower)
 function roundszero{lattice, epochbits}(x::PBound{lattice,epochbits})
   ((x.state & PFLOAT_STDBOUND) == 0) && return false  #traps both allreals and stdbound

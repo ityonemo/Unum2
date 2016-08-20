@@ -1,0 +1,60 @@
+Definitions:
+ℝᵖ - projective reals.
+ℝᵖ/L - projective reals represented by a Type2 Unum Lattice L.  The elements
+are intervals, which will be denoted as x̅.  An element of may also be an exact
+value or an ulp value, which will be denoted as ẋ.
+
+O:(ℝᵖ/L)ⁿ → ℝᵖ/L is an *implementation* of an operation o:(ℝᵖ)ⁿ → ℝᵖ.  The
+implementation must have the property o(x) ∈ O(ẋ), where ẋ is the unique ulp
+or exact value in ℝᵖ/L containing x.
+
+O:(ℝᵖ/L)ⁿ → ℝᵖ/L has "minimal bounding error" if
+  ∀ (ẏ ⊆ O(<x̅ᵢ…>)), ∃ <xᵢ…> ∈ <x̅ᵢ…> | o(<xᵢ…>) ∈ ẏ
+
+o:(ℝᵖ)ⁿ → ℝᵖ is "partially monotonic" if all partial applications yielding a
+  single valued function are monotonic.
+
+o:(ℝᵖ)ⁿ → ℝᵖ is "totally monotonic" if it is partially monotonic, and all single
+  valued, partial applications keeping the same index free have the same
+  monotonicity.
+
+Lookup table lemma:  if o(<ẋᵢ…>) is partially monotonic and an ulp or an exact
+  value for all exact vectors <ẋᵢ…>, there ∃ a trivially constructible O with
+  minimal bounding error.
+
+Proof, by induction over set construction.
+  Base case:  <ẋᵢ…> - exact vector.  Then let ẏ = O(<ẋᵢ…>).  Since the only
+  nonempty subset of ẏ is ẏ itself, the minimal bounding criterion is fulfilled
+  by lookup table.
+  Inductive case 1:  <ẋᵢ…> - exact except for n + 1 dimensions, which are ulps.
+    Assume the minimal bounding criterion applies when <ẋᵢ…> is exact over n ulps.
+    WOLOG, let ẋ₁ be a an ulp, and f(z) = O(<x₁ₗ, ẋ₂…>), defined by lookup, is
+    monotonic positive, by the definition of partially monotonic.  Examine the
+    bounding values x₁ₗ and x₁ₕ, where x₁ₗ is glb(ẋ₁) and x₁ₕ is lub(ẋ₁).  By
+    definition, x₁ₗ < x₁ₕ; and we'll define provisional variables:
+    ẏₗₚ = O(<x₁ₗ, ẋ₂…>) < O(<x₁ₕ, ẋ₂…>) = ẏₕₚ.  If ẏₗₚ is exact, let ẏₗ be the
+    ulp above ẏₗₚ, otherwise ẏₗ := ẏₗₚ; construct ẏₗ symmetrically.
+
+    Pick any x > ẋ₁ₗ, by the monotonicity of f, f(x) > f(ẋ₁ₗ) = ẏₗₚ.  Similarly,
+    for any x < ẋ₁ₕ, f(x) < f(ẋ₁ₕ) = ẏₕₚ.  Therefore, the construction
+    f(x) = ẏₗ…ẏₕ corresponds to a implementation O of o over n+1 ulps.  It
+    remains to show that O is minimally bounded over n+1 ulps.
+
+    Examine the external ulp ẏₗ.  Using the value yₗₕ which is lub(ẏₗ), pick
+    ϵ = (yₗₕ - f(x₁ₗ))/2.  By continuity,
+      ∃ δ | f(x₁ₗ) < f(x₁ₗ + δ) < f(x₁ₗ) + ϵ < yₗₕ
+      therefore f(x₁ₗ + δ) = ẏₗ ⊆ O(<x₁ₗ, ẋ₂…>).  Repeat the process with ẏₕ.
+      If some ẏ ⊆ ẏₗ…ẏₕ -exact, by the intermediate value theorem, we know that
+      for some vector <xᵢ…> in <ẋᵢ…>, o(<xᵢ…>) = ẏ.  For a non-edge ulp ẏₘ, we
+      may repeat the process as the edge ulp, using ϵ = (lub(ẏₘ) - glb(ẏₘ))/2,
+      and the intermediate value theorem result.
+
+  Inductive case 2:  <x̅ᵢ…> - SORNs of size (m tiles) except for n + 1 dimensions,
+    which are SORNs of size (m + 1 tiles).  WOLOG, let x̅ᵢ have size
+    (m + 1 tiles).  Construct two regions, the first by subtracting the greatest
+    tile out of x̅ᵢ.  By induction, O over both regions satisfy minimal
+    boundedness.  Therefore, the strict union of both images satisfies minimal
+    boundedness.
+
+Corollary:  Operations +, -, *, /, implemented using lookup tables, have minimal
+  bounding error.

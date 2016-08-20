@@ -73,7 +73,7 @@
 @test (ollo → lolo) * (oolo → ooll) == (oloo → lloo)
 #(2 -2] * [1/2 2) == (1 -1]
 @test (olll → lolo) * (oolo → ooll) == (olol → lloo)
-#(2 -2] * [-2 -1/2) == [1 -1)
+#(2 -2] * (-2 -1/2] == [1 -1)
 @test (olll → lolo) * (-(oolo → ooll)) == (oloo → loll)
 #(2 -2] * 0 == allreals
 @test (olll → lolo) * ▾(oooo) == ℝᵖ(PBound4)

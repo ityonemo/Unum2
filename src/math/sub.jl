@@ -4,105 +4,174 @@ import Base.-
 -{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = sub(x, y, Val{:auto})
 -{lattice, epochbits}(x::PFloat{lattice, epochbits}) = additiveinverse(x)
 
-function sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
-  is_inf(x) && return inf(P)
-  is_inf(y) && return inf(P)
-  is_zero(x) && return -(y)
-  is_zero(y) && return x
-
+function sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   add(x, -y, OT)
 end
 
-@generated function exact_arithmetic_subtraction{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{output})
-  #first figure out the epoch reduction limit
+function exact_arithmetic_subtraction{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+  is_zero(x) && return -y
+  is_zero(y) && return x
+  (x == y) && return zero(PFloat{lattice, epochbits})
+  #first, we should sort the two numbers into high
+  flipped = isnegative(x) $ (x < y)
+  (outer, inner) = (flipped) ? (y, x) : (x, y)
+  #for now, only support adding a non-inverted value to a non-inverted value.
+
+  o_inverted = isinverted(outer)
+  i_inverted = isinverted(inner)
+
+  if (!o_inverted) && (!i_inverted)
+    v = exact_arithmetic_subtraction_uninverted(outer, inner, OT)
+  elseif (o_inverted) && (i_inverted)
+    v = exact_arithmetic_subtraction_inverted(outer, inner, OT)
+  else
+    v = exact_arithmetic_subtraction_crossed(outer, inner, OT)
+  end
+
+  (flipped) ? -v : v
+end
+
+bumpup(x) = iseven(x) ? (x + 0x0000_0000_0000_0001) : x
+bumpdn(x) = iseven(x) ? (x - 0x0000_0000_0000_0001) : x
+
+lattice_length(l::Symbol) = length(__MASTER_LATTICE_LIST[l])
+
+@generated function invertresult{lattice, output}(value, L::Type{Val{lattice}}, OT::Type{Val{output}})
+  inv_table             = table_name(lattice, :inv)
+  isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
+  mval = (lattice_length(lattice) * 2) + 1
+  if output == :lower
+    :(iseven(value) ? $inv_table[value >> 1] :
+      x = ((value == $mval) ? one(UInt64) : bumpup($inv_table[value >> 1 + 1])))
+  elseif output == :upper
+    :(iseven(value) ? $inv_table[value >> 1] : bumpdn($inv_table[value >> 1]))
+  else #__BOUND or __AUTO
+    #return a tuple.
+    :(iseven(value) ? ($inv_table[value >> 1], $inv_table[value >> 1]) :
+      (((value == $mval) ? one(UInt64): bumpup($inv_table[value >> 1 + 1])), bumpdn($inv_table[value >> 1])))
+  end
+end
+
+@generated function exact_arithmetic_subtraction_uninverted{lattice, epochbits, output}(outer::PFloat{lattice, epochbits}, inner::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   sub_table             = table_name(lattice, :sub)
   sub_epoch_table       = table_name(lattice, :sub_epoch)
-  sub_inv_table         = table_name(lattice, :sub_inv)
-  sub_inv_epoch_table   = table_name(lattice, :sub_inv_epoch)
-  sub_cross_table       = table_name(lattice, :sub_cross)
-  sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
 
-  inv_table             = table_name(lattice, :inv)
-  m_epoch = max_epoch(epochbits)
-
-  #create the inversion table table, if necessary.
-  isdefined(Unum2, inv_table)       || create_inversion_table(Val{lattice})
   isdefined(Unum2, sub_table)       || create_subtraction_table(Val{lattice})
-  isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_table(Val{lattice})
-  isdefined(Unum2, sub_cross_table) || create_crossed_subtraction_table(Val{lattice})
+
+  m_epoch = max_epoch(epochbits)
   quote
-    is_zero(x) && return -y
-    is_zero(y) && return x
-    #first, we should sort the two numbers into higher and lower.
-
-    (x == y) && return zero(PFloat{lattice, epochbits})
-
-    flipped = isnegative(x) $ (x < y)
-
-    (outer, inner) = (flipped) ? (y, x) : (x, y)
-
     (o_negative, o_inverted, o_epoch, o_value) = decompose(outer)
     (i_negative, i_inverted, i_epoch, i_value) = decompose(inner)
 
-    #go ahead and flip o_negative (which determines result sign) if necessary
-    o_negative $= flipped
-
-    result_epoch::Int64
-    #for now, only support adding a non-inverted value to a non-inverted value.
-    if (!o_inverted) && (!i_inverted)
-      #for now, only support adding things that are in the same epoch.
-      if o_epoch == i_epoch
-        result_value = $sub_table[o_value >> 1 + 1, i_value >> 1 + 1]
-        result_epoch = @s(o_epoch) - @s($sub_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
-      else
-        return nothing #for now.
-        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequai_epoch(x, y) : add_unequai_epoch(y, x)
-      end
-
-      result_inverted = false
-      #may need to reverse the orientation on the result.
-      if (result_epoch < 0)
-        result_inverted = true
-        result_epoch = (-result_epoch) - 1
-        result_value = $inv_table[result_value >> 1]
-      end
-
-      #check to see if we've gone really small.
-      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
-
-      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
-
-    elseif (o_inverted) && (i_inverted)
-      #for now, only support adding things that are in the same epoch.
-      if o_epoch == i_epoch
-        result_value = $sub_inv_table[o_value >> 1 + 1, i_value >> 1 + 1]
-        result_epoch = @s(o_epoch) + @s($sub_inv_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
-      else
-        return nothing #for now.
-        #(result_value, result_epoch) = (x_epoch > y_epoch) ? add_unequai_epoch(x, y) : add_unequai_epoch(y, x)
-      end
-
-      #check to see if we've gotten really small.
-      (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
-
-      synthesize(PFloat{lattice, epochbits}, o_negative, true, result_epoch, result_value)
-    elseif ((o_epoch == 0) && (i_epoch == 0))
-      result_value = $sub_cross_table[o_value >> 1 + 1, i_value >> 1 + 1]
-      result_epoch = - @s($sub_cross_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
-
-      result_inverted = false
-      #may need to reverse the orientation on the result.
-      if (result_epoch < 0)
-        result_inverted = true
-        result_epoch = (-result_epoch) - 1
-        result_value = $inv_table[result_value >> 1]
-      end
-
-      #check to see if we've gone really small.
-      ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
-
-      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
+    #for now, only support adding things that are in the same epoch.
+    if o_epoch == i_epoch
+      result_value = $sub_table[o_value >> 1 + 1, i_value >> 1 + 1]
+      result_epoch = @s(o_epoch) - @s($sub_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
     else
+      return nothing #for now.
+    end
+
+    result_inverted = false
+    #may need to reverse the orientation on the result.
+    if (result_epoch < 0)
+      result_inverted = true
+      result_epoch = (-result_epoch) - 1
+
+
+      if (OT == __BOUND) || (OT == __AUTO)
+        (_l_res, _u_res) = invertresult(result_value, Val{lattice}, OT)
+      else
+        result_value = invertresult(result_value, Val{lattice}, OT)
+      end
+    elseif (OT == __BOUND) || (OT == __AUTO)
+      _l_res = result_value
+      _u_res = result_value
+    end
+
+    #check to see if we've gone really small.
+    (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
+
+    if (OT == __BOUND) || (OT == __AUTO)
+      PBound{lattice, epochbits}(synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _l_res),
+      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _u_res))
+    else
+      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
+    end
+  end
+end
+
+@generated function exact_arithmetic_subtraction_inverted{lattice, epochbits, output}(outer::PFloat{lattice, epochbits}, inner::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+
+  sub_inv_table         = table_name(lattice, :sub_inv)
+  sub_inv_epoch_table   = table_name(lattice, :sub_inv_epoch)
+
+  isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_table(Val{lattice})
+
+  m_epoch = max_epoch(epochbits)
+
+  quote
+    (o_negative, o_inverted, o_epoch, o_value) = decompose(outer)
+    (i_negative, i_inverted, i_epoch, i_value) = decompose(inner)
+
+    #for now, only support adding things that are in the same epoch.
+    if o_epoch == i_epoch
+      result_value = $sub_inv_table[o_value >> 1 + 1, i_value >> 1 + 1]
+      result_epoch = @s(o_epoch) + @s($sub_inv_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
+    else
+      return nothing #for now.
+    end
+
+    (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
+
+    synthesize(PFloat{lattice, epochbits}, o_negative, true, result_epoch, result_value)
+  end
+end
+
+@generated function exact_arithmetic_subtraction_crossed{lattice, epochbits, output}(outer::PFloat{lattice, epochbits}, inner::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+
+  #first figure out the epoch reduction limit
+  sub_cross_table       = table_name(lattice, :sub_cross)
+  sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
+  inv_table             = table_name(lattice, :inv)
+
+
+  #create the inversion table table, if necessary.
+  isdefined(Unum2, sub_cross_table) || create_crossed_subtraction_table(Val{lattice})
+  isdefined(Unum2, inv_table)       || create_inversion_table(Val{lattice})
+
+  m_epoch = max_epoch(epochbits)
+
+  quote
+    (o_negative, o_inverted, o_epoch, o_value) = decompose(outer)
+    (i_negative, i_inverted, i_epoch, i_value) = decompose(inner)
+
+    result_value = $sub_cross_table[o_value >> 1 + 1, i_value >> 1 + 1]
+    result_epoch = - @s($sub_cross_epoch_table[o_value >> 1 + 1, i_value >> 1 + 1])
+
+    result_inverted = false
+    #may need to reverse the orientation on the result.
+    if (result_epoch < 0)
+      result_inverted = true
+      result_epoch = (-result_epoch) - 1
+
+      if (OT == __BOUND) || (OT == __AUTO)
+        (_l_res, _u_res) = invertresult(result_value, Val{lattice}, OT)
+      else
+        result_value = invertresult(result_value, Val{lattice}, OT)
+      end
+    elseif (OT == __BOUND) || (OT == __AUTO)
+      _l_res = result_value
+      _u_res = result_value
+    end
+
+    #check to see if we've gone really small.
+    ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
+
+    if (OT == __BOUND) || (OT == __AUTO)
+      B(synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _l_res),
+      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _u_res))
+    else
+      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
     end
   end
 end

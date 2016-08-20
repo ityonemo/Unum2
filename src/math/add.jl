@@ -3,6 +3,7 @@
 import Base.+
 +{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = add(x, y, Val{:auto})
 
+
 #adds two numbers x, y
 function add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
 
@@ -136,6 +137,7 @@ end
     for idx = 0:l, idx2 = 0:l
       true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) +
                    ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
+
       #first check to see if the true_value corresponds to the pivot value.
       (true_value < 1) && (true_value *= pivot_value)
 

@@ -4,18 +4,8 @@ import Base./
 /{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = div(x, y, Val{:auto})
 /{lattice, epochbits}(x::PFloat{lattice, epochbits}) = multiplicativeinverse(x)
 
-@pfunction function div(x::PFloat, y::PFloat)
-  is_inf(x) && return (is_zero(y) ? inf(P) : R)
-  is_inf(y) && return (is_zero(x) ? inf(P) : R)
-  is_zero(x) && return (is_inf(y) ? zero(P) : R)
-  is_zero(y) && return (is_inf(x) ? zero(P) : R)
-
-  if isexact(x) & isexact(y)
-    exact_div(x, y)
-  else
-    return nothing
-    #inexact_div(x, y)
-  end
+function div{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+  mul(x, /(y), OT)
 end
 
 @pfunction function exact_div(x::PFloat, y::PFloat)
