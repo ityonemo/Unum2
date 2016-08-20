@@ -8,15 +8,7 @@ function div{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
   mul(x, /(y), OT)
 end
 
-@pfunction function exact_div(x::PFloat, y::PFloat)
-  if (isinverted(x) $ isinverted(y))
-    exact_arithmetic_multiplication(x, multiplicativeinverse(y))
-  else
-    exact_arithmetic_division(x, y)
-  end
-end
-
-@generated function exact_arithmetic_division{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+@generated function exact_arithmetic_division{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
 
   #note that parameters passed to this function will always be pointing in the
   #same direction (out or in) relative to one.
@@ -62,10 +54,23 @@ end
     if (res_epoch < 0)
       res_inverted = !x_inverted
       res_epoch = (-res_epoch) - 1
-      res_value = $inv_table[res_value >> 1]
+
+      if (OT == __BOUND) || (OT == __AUTO)
+        (_l_res, _u_res) = invertresult(res_value, Val{lattice}, OT)
+      else
+        res_value = invertresult(res_value, Val{lattice}, OT)
+      end
+    elseif (OT == __BOUND) || (OT == __AUTO)
+      _l_res = res_value
+      _u_res = res_value
     end
 
-    synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, res_value)
+    if (OT == __BOUND) || (OT == __AUTO)
+      PBound{lattice, epochbits}(synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, _l_res),
+      synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, _u_res))
+    else
+      synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, res_value)
+    end
   end
 end
 

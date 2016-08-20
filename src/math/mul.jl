@@ -32,9 +32,9 @@ end
 
 function exact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
   if (isinverted(x) $ isinverted(y))
-    coerce(exact_arithmetic_division(x, multiplicativeinverse(y)), OT)
+    exact_arithmetic_division(x, multiplicativeinverse(y), OT)
   else
-    coerce(exact_arithmetic_multiplication(x, y), OT)
+    exact_arithmetic_multiplication(x, y, OT)
   end
 end
 
@@ -82,21 +82,22 @@ end
 end
 
 
-@generated function exact_arithmetic_multiplication{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+@generated function exact_arithmetic_multiplication{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}} )
   mul_table = table_name(lattice, :mul)
   m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
   isdefined(Unum2, mul_table) || create_multiplication_table(Val{lattice})
+
   quote
-    is_inf(x) && return inf(PFloat{lattice, epochbits})
-    is_inf(y) && return inf(PFloat{lattice, epochbits})
-    is_zero(x) && return zero(PFloat{lattice, epochbits})
-    is_zero(y) && return zero(PFloat{lattice, epochbits})
-    is_one(x) && return y
-    is_one(y) && return x
-    is_neg_one(x) && return -y
-    is_neg_one(y) && return -x
+    is_inf(x) &&     return coerce(inf(PFloat{lattice, epochbits}), OT)
+    is_inf(y) &&     return coerce(inf(PFloat{lattice, epochbits}), OT)
+    is_zero(x) &&    return coerce(zero(PFloat{lattice, epochbits}), OT)
+    is_zero(y) &&    return coerce(zero(PFloat{lattice, epochbits}), OT)
+    is_one(x) &&     return coerce(y                               , OT)
+    is_one(y) &&     return coerce(x                               , OT)
+    is_neg_one(x) && return coerce(-y                              , OT)
+    is_neg_one(y) && return coerce(-x                              , OT)
 
     x_negative = y_negative = x_inverted = y_inverted= false
     x_epoch = y_epoch = x_value = y_value = z64
@@ -120,9 +121,9 @@ end
     res_sign = x_negative $ y_negative
 
     #check to see if we overflow to extremum.
-    ((res_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, res_sign, x_inverted)
+    ((res_epoch) > $m_epoch) && return coerce(extremum(PFloat{lattice, epochbits}, res_sign, x_inverted), OT)
 
-    synthesize(PFloat{lattice, epochbits}, res_sign, x_inverted, res_epoch, res_value)
+    coerce(synthesize(PFloat{lattice, epochbits}, res_sign, x_inverted, res_epoch, res_value), OT)
   end
 end
 

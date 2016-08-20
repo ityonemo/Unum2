@@ -40,10 +40,10 @@ lattice_length(l::Symbol) = length(__MASTER_LATTICE_LIST[l])
   inv_table             = table_name(lattice, :inv)
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   mval = (lattice_length(lattice) * 2) + 1
-  if output == :lower
+  if (output == :lower)  || (output == :inner)
     :(iseven(value) ? $inv_table[value >> 1] :
       x = ((value == $mval) ? one(UInt64) : bumpup($inv_table[value >> 1 + 1])))
-  elseif output == :upper
+  elseif (output == :upper) || (output == :outer)
     :(iseven(value) ? $inv_table[value >> 1] : bumpdn($inv_table[value >> 1]))
   else #__BOUND or __AUTO
     #return a tuple.

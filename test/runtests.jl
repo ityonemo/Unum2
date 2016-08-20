@@ -5,13 +5,13 @@ include("testtools.jl")
 include("4bittest.jl")
 include("5bittest.jl")
 
+
 #=
 import_lattice(:PFloat5)
 include("5bittest/5btdefs.jl")
-
-x = PFloat5(1/8)
-y = PFloat5(1/10)
+x = ▾(PFloat5(0b01001))
+y = ▾(PFloat5(0b00010))
 println(x)
 println(y)
-println(x - y)
+println(x * y)
 =#
