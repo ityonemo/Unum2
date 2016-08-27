@@ -7,11 +7,13 @@ include("5bittest.jl")
 
 
 #=
-import_lattice(:PTile5)
-include("5bittest/5btdefs.jl")
-x = ▾(PTile5(0b01001))
-y = ▾(PTile5(0b00010))
-println(x)
-println(y)
-println(x * y)
+import_lattice(:PFloat4)
+
+
+#println(PTile4(2.0))
+#println(PTile4(1.0))
+println(PTile4(-2.0))
+println(PTile4(-0.5))
+println(PTile4(0.5))
+println(PTile4(2.0))
 =#

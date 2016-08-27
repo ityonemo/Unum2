@@ -11,41 +11,44 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
   !isfinite(x) && return inf(P)
   (_value == zero(T)) && return zero(P)
 
+  #create a placeholder decomposed value.
+  dc_res::__dc_tile = zero(__dc_tile)
+
   #first handle the negative situation.
   if (_value < zero(T))
-    is_negative = true
+    set_negative!(dc_res)
     _value = -_value
-  else
-    is_negative = false
   end
 
   if (_value == one(T))
-    is_inverted = false
-    result_epoch = 0
-    result_value = 0x0000_0000_0000_0000
+    dc_res.epoch = zero(ST_Int)
+    dc_res.lvalue = zero(UT_Int)
   elseif (_value > one(T))
-    is_inverted = false
-    result_epoch = 0
+    dc_res.epoch = 0
     _epoch_bottom = 1.0
     while (_value > _epoch_bottom * _pivot)
       _epoch_bottom *= _pivot
-      result_epoch += 1
+      dc_res.epoch += 1
     end
     #now we know that _current_pivot is just over the pivot.
     _value /= _epoch_bottom
-    result_value = search_lattice(l, _value)
+    dc_res.lvalue = search_lattice(l, _value)
   else #inverted
-    is_inverted = true
-    result_epoch = 0
+    set_inverted!(dc_res)
+    _value *= _pivot
+    dc_res.epoch = 0
     while (_value < 1.0)
       _value *= _pivot
-      result_epoch += 1
+      dc_res.epoch += 1
     end
-
-    result_value = search_lattice(l, _pivot / _value)
+    dc_res.lvalue = search_lattice(l, _pivot / _value)
   end
-
-  synthesize(P, is_negative, is_inverted, result_epoch, result_value)
+  synthesize(P, dc_res)
 end
 
-Base.call{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x) = cnv(P, x)
+@generated function Base.call{lattice, epochbits}(::Type{PTile{lattice, epochbits}}, value)
+  validate(__MASTER_LATTICE_LIST[lattice], __MASTER_PIVOT_LIST[lattice])  #double check to make sure it's ok, because why not.
+  #make sure epochs is more than 0
+  (epochbits > 0) || throw(ArgumentError("must have at least one epoch bit"))
+  return :(cnv(PTile{lattice, epochbits}, value))
+end

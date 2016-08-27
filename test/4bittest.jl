@@ -1,8 +1,9 @@
 #4-bit unum2 basics.
 
-@unumbers
+const utop = Unum2.PTILE_INF
+const uzero = Unum2.PTILE_ZERO
 
-import_lattice(:PTile4)
+import_lattice(:PFloat4)
 
 #create the entire circle of values.
 p4_inf   = PTile4(Inf)
@@ -25,46 +26,48 @@ p4p_many = PTile4(3)
 p4vec = [p4_inf, p4n_many, p4n_two, p4n_much, p4n_one, p4n_most, p4n_half, p4n_some, p4_zero, p4p_some, p4p_half, p4p_most, p4p_one, p4p_much, p4p_two, p4p_many]
 
 #test to make sure that everything looks as it should.
-intvalue = 0x8000_0000_0000_0000
+intvalue = utop
 for x in p4vec
   @test (x : lookslike : intvalue)
-  intvalue += 0x1000_0000_0000_0000
+  intvalue += Unum2.incrementor(PTile4)
 end
 
 ################################################################################
 #test decompose and synthesize
 
-@test Unum2.decompose(p4n_many) == (true,  false, z64, 0x0000_0000_0000_0003)
-@test Unum2.decompose(p4n_two ) == (true,  false, z64, 0x0000_0000_0000_0002)
-@test Unum2.decompose(p4n_much) == (true,  false, z64, 0x0000_0000_0000_0001)
-@test Unum2.decompose(p4n_one ) == (true,  false, z64, 0x0000_0000_0000_0000)
-@test Unum2.decompose(p4n_most) == (true,  true,  z64, 0x0000_0000_0000_0001)
-@test Unum2.decompose(p4n_half) == (true,  true,  z64, 0x0000_0000_0000_0002)
-@test Unum2.decompose(p4n_some) == (true,  true,  z64, 0x0000_0000_0000_0003)
-#----------------------------------------------------------------------------
-@test Unum2.decompose(p4p_some) == (false, true,  z64, 0x0000_0000_0000_0003)
-@test Unum2.decompose(p4p_half) == (false, true,  z64, 0x0000_0000_0000_0002)
-@test Unum2.decompose(p4p_most) == (false, true,  z64, 0x0000_0000_0000_0001)
-@test Unum2.decompose(p4p_one ) == (false, false, z64, 0x0000_0000_0000_0000)
-@test Unum2.decompose(p4p_much) == (false, false, z64, 0x0000_0000_0000_0001)
-@test Unum2.decompose(p4p_two ) == (false, false, z64, 0x0000_0000_0000_0002)
-@test Unum2.decompose(p4p_many) == (false, false, z64, 0x0000_0000_0000_0003)
+import Unum2: decompose, synthesize, __dc_tile, UT_Int, ST_Int
 
-@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0003) == (p4n_many)
-@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0002) == (p4n_two )
-@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0001) == (p4n_much)
-@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0000) == (p4n_one )
-@test Unum2.synthesize(PTile4, true,  true,  z64, 0x0000_0000_0000_0001) == (p4n_most)
-@test Unum2.synthesize(PTile4, true,  true,  z64, 0x0000_0000_0000_0002) == (p4n_half)
-@test Unum2.synthesize(PTile4, true,  true,  z64, 0x0000_0000_0000_0003) == (p4n_some)
+@test decompose(p4n_many) == __dc_tile(zero(ST_Int), UT_Int(3), 0x02)
+@test decompose(p4n_two ) == __dc_tile(zero(ST_Int), UT_Int(2), 0x02)
+@test decompose(p4n_much) == __dc_tile(zero(ST_Int), UT_Int(1), 0x02)
+@test decompose(p4n_one ) == __dc_tile(zero(ST_Int), UT_Int(0), 0x02)
+@test decompose(p4n_most) == __dc_tile(zero(ST_Int), UT_Int(1), 0x03)
+@test decompose(p4n_half) == __dc_tile(zero(ST_Int), UT_Int(2), 0x03)
+@test decompose(p4n_some) == __dc_tile(zero(ST_Int), UT_Int(3), 0x03)
+#----------------------------------------------------------------------------
+@test decompose(p4p_some) == __dc_tile(zero(ST_Int), UT_Int(3), 0x01)
+@test decompose(p4p_half) == __dc_tile(zero(ST_Int), UT_Int(2), 0x01)
+@test decompose(p4p_most) == __dc_tile(zero(ST_Int), UT_Int(1), 0x01)
+@test decompose(p4p_one ) == __dc_tile(zero(ST_Int), UT_Int(0), 0x00)
+@test decompose(p4p_much) == __dc_tile(zero(ST_Int), UT_Int(1), 0x00)
+@test decompose(p4p_two ) == __dc_tile(zero(ST_Int), UT_Int(2), 0x00)
+@test decompose(p4p_many) == __dc_tile(zero(ST_Int), UT_Int(3), 0x00)
+
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(3), 0x02)) == (p4n_many)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(2), 0x02)) == (p4n_two )
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(1), 0x02)) == (p4n_much)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(0), 0x02)) == (p4n_one )
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(1), 0x03)) == (p4n_most)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(2), 0x03)) == (p4n_half)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(3), 0x03)) == (p4n_some)
 #--------------------------------------------------------------------------------------
-@test Unum2.synthesize(PTile4, false, true,  z64, 0x0000_0000_0000_0003) == (p4p_some)
-@test Unum2.synthesize(PTile4, false, true,  z64, 0x0000_0000_0000_0002) == (p4p_half)
-@test Unum2.synthesize(PTile4, false, true,  z64, 0x0000_0000_0000_0001) == (p4p_most)
-@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0000) == (p4p_one )
-@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0001) == (p4p_much)
-@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0002) == (p4p_two )
-@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0003) == (p4p_many)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(3), 0x01)) == (p4p_some)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(2), 0x01)) == (p4p_half)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(1), 0x01)) == (p4p_most)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(0), 0x00)) == (p4p_one )
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(1), 0x00)) == (p4p_much)
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(2), 0x00)) == (p4p_two )
+@test synthesize(PTile4, __dc_tile(zero(ST_Int), UT_Int(3), 0x00)) == (p4p_many)
 
 ################################################################################
 #test properties like negative and inverted.

@@ -1,10 +1,10 @@
 #pbound.jl - type definition for pbounds
 
 #create a series of symbols which are effectively state symbols.
-const P_NULLSET   = 0x00 #no values
-const P_SINGLETON = 0x01 #a SINGLETON value
-const P_STDBOUND  = 0x02 #two values in a standard bound
-const P_ALLPREALS = 0x03 #all projective reals
+const PBOUND_NULLSET   = 0x00 #no values
+const PBOUND_SINGLE = 0x01 #a SINGLETON value
+const PBOUND_DOUBLE  = 0x02 #two values in a standard bound
+const PBOUND_ALLPREALS = 0x03 #all projective reals
 
 #create a series of value types which can specify the nature of the output.
 const __LOWER = Val{:lower}  #if the result is a PBound, only output the lower PTile.
@@ -25,9 +25,9 @@ end
 
 function Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, lower::PTile{lattice, epochbits}, upper::PTile{lattice, epochbits})
   if (lower == upper)
-    PBound{lattice, epochbits}(lower, zero(PTile{lattice, epochbits}), PTile_SINGLETON)
+    PBound{lattice, epochbits}(lower, zero(PTile{lattice, epochbits}), PBOUND_SINGLE)
   else
-    PBound{lattice, epochbits}(lower, upper, PTile_STDBOUND)
+    PBound{lattice, epochbits}(lower, upper, PBOUND_DOUBLE)
   end
 end
 
@@ -38,10 +38,10 @@ Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}) = PBound{latti
 
 function →{lattice, epochbits}(lower::PTile{lattice, epochbits}, upper::PTile{lattice, epochbits})
   (lower == upper) && throw(ArgumentError("→ cannot take identical ubounds"))
-  PBound{lattice, epochbits}(lower, upper, PTile_STDBOUND)
+  PBound{lattice, epochbits}(lower, upper, PBOUND_DOUBLE)
 end
 
-▾{lattice, epochbits}(x::PTile{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PTile{lattice, epochbits}), PTile_SINGLETON)
+▾{lattice, epochbits}(x::PTile{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PTile{lattice, epochbits}), PBOUND_SINGLE)
 
 ∅{lattice, epochbits}(::Type{PBound{lattice, epochbits}}) = emptyset(PBound{lattice, epochbits})
 
@@ -53,12 +53,12 @@ doc"""
   Unum2.coerce(::PTile, Val{output}) casts the PTile into a singleton PBound if the
   desired output is a bound, otherwise, it returns the naked float.
 """
-coerce{lattice, epochbits, output}(x::PTile{lattice, epochbits}, ::Type{Val{output}}) = (output == :bound) ? PBound(x, zero(PTile{lattice, epochbits}), PTile_SINGLETON) : x
+coerce{lattice, epochbits, output}(x::PTile{lattice, epochbits}, ::Type{Val{output}}) = (output == :bound) ? PBound(x, zero(PTile{lattice, epochbits}), PBOUND_SINGLE) : x
 
 doc"""
   Unum2.\_auto(::PTile, ::PTile) casts the PTile into a singleton PBound if the
   desired output is auto, otherwise, it returns the naked float.
 """
-_auto{lattice, epochbits}(l::PTile{lattice, epochbits}, u::PTile{lattice, epochbits}) = (l == u) ? l : PBound(l, u, PTile_STDBOUND)
+_auto{lattice, epochbits}(l::PTile{lattice, epochbits}, u::PTile{lattice, epochbits}) = (l == u) ? l : PBound(l, u, PBOUND_DOUBLE)
 
 export PBound, →, ▾, ∅, ℝ, ℝᵖ

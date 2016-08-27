@@ -1,9 +1,9 @@
 const SIGN_MASK    = 0x8000_0000_0000_0000
 const INV_MASK     = 0x4000_0000_0000_0000
 
-isnegative{lattice, epochbits}(x::PTile{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & (z64 != (SIGN_MASK & (@i x)))
-ispositive{lattice, epochbits}(x::PTile{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & (z64 == (SIGN_MASK & (@i x)))
-isinverted{lattice, epochbits}(x::PTile{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & ((z64 != (INV_MASK & (@i x))) == (z64 != (SIGN_MASK & (@i x))))
+isnegative{lattice, epochbits}(x::PTile{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & (PTILE_ZERO != (SIGN_MASK & (@i x)))
+ispositive{lattice, epochbits}(x::PTile{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & (PTILE_ZERO == (SIGN_MASK & (@i x)))
+isinverted{lattice, epochbits}(x::PTile{lattice, epochbits}) = ((@i x) & (~SIGN_MASK) != 0) & ((PTILE_ZERO != (INV_MASK & (@i x))) == (PTILE_ZERO != (SIGN_MASK & (@i x))))
 isexact{lattice, epochbits}(x::PTile{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) == 0
 isulp{lattice, epochbits}(x::PTile{lattice, epochbits}) = (@i x) & incrementor(typeof(x)) != 0
 
@@ -20,20 +20,20 @@ export isnegative, ispositive, isinverted
 
 #pbound properties.
 
-isempty{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PTile_NULLSET)
-issingle{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PTile_SINGLETON)
-isdouble{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PTile_STDBOUND)
-ispreals{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PTile_ALLPREALS)
+isempty{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_NULLSET)
+issingle{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_SINGLE)
+isdouble{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_DOUBLE)
+ispreals{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_ALLPREALS)
 
 #property coercion
-set_empty!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PTile_NULLSET)
-set_single!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PTile_SINGLETON)
-set_double!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PTile_STDBOUND)
-set_preals!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PTile_ALLPREALS)
+set_empty!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOUND_NULLSET)
+set_single!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOUND_SINGLE)
+set_double!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOUND_DOUBLE)
+set_preals!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOUND_ALLPREALS)
 
-roundsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PTile_ALLPREALS) || (x.state == PTile_STDBOUND) && (x.upper < x.lower)
+roundsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PBOUND_ALLPREALS) || (x.state == PBOUND_DOUBLE) && (x.upper < x.lower)
 function roundszero{lattice, epochbits}(x::PBound{lattice,epochbits})
-  ((x.state & PTile_STDBOUND) == 0) && return false  #traps both allreals and stdbound
+  ((x.state & PBOUND_DOUBLE) == 0) && return false  #traps both allreals and stdbound
   if roundsinf(x)
     (ispositive(x.lower) && ispositive(x.upper)) || (isnegative(x.lower) && isnegative(x.upper))
   else

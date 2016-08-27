@@ -30,14 +30,14 @@ end
 end
 
 @pfunction function ==(x::PBound, y::PBound)
-  if x.state == PTile_NULLSET
-    y.state == PTile_NULLSET
-  elseif x.state == PTile_SINGLETON
-    (x.lower == y.lower)
-  elseif x.state == PTile_STDBOUND
-    (x.lower == y.lower) && (x.upper == y.upper)
-  elseif x.state == PTile_ALLPREALS
-    y.state == PTile_ALLPREALS
+  if isempty(x)
+    isempty(y)
+  elseif issingle(x)
+    issingle(y) && (x.lower == y.lower)
+  elseif isdouble(x)
+    isdouble(y) && (x.lower == y.lower) && (x.upper == y.upper)
+  elseif ispreals(x)
+    ispreals(y)
   else
     false
   end

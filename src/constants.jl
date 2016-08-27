@@ -1,37 +1,34 @@
 #constants.jl
 #in this implementation, the constants are all pretty straightforward.
 
-const PTILE_INF = 0x8000_0000_0000_0000
-const PTILE_ZERO = 0x0000_0000_0000_0000
-const PTILE_ONE = 0x4000_0000_0000_0000
-const PTILE_NEG_ONE = 0xC000_0000_0000_0000
 
-@generated function incrementor{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}})
+
+@generated function incrementor{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})
   x = one(UInt64) << (63 - latticebits(lattice) - epochbits)
   :($x)
 end
 
-Base.inf{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}})  = @p(pfloat_inf)
-Base.zero{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = @p(pfloat_zero)
-Base.one{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}})  = @p(pfloat_one)
-neg_one{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}})   = @p(pfloat_neg_one)
+Base.inf{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})  = @p(PTILE_INF)
+Base.zero{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_ZERO)
+Base.one{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})  = @p(PTILE_ONE)
+neg_one{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})   = @p(PTILE_NEG_ONE)
 
 export neg_one
 
-is_zero(x::PFloat) = @i(x) == pfloat_zero
-is_inf(x::PFloat) = @i(x) == pfloat_inf
-is_one(x::PFloat) = @i(x) == pfloat_one
-is_neg_one(x::PFloat) = @i(x) == pfloat_neg_one
+is_zero(x::PTile) = @i(x) == PTILE_ZERO
+is_inf(x::PTile) = @i(x) == PTILE_INF
+is_one(x::PTile) = @i(x) == PTILE_ONE
+is_neg_one(x::PTile) = @i(x) == PTILE_NEG_ONE
 
 ################################################################################
 # infinite and infinitesimal ulps
 
-pos_many{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = @p(pfloat_inf - incrementor(T))
-neg_many{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = @p(pfloat_inf + incrementor(T))
-pos_few{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = @p(pfloat_zero + incrementor(T))
-neg_few{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = @p(pfloat_zero - incrementor(T))
+pos_many{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_INF - incrementor(T))
+neg_many{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_INF + incrementor(T))
+pos_few{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_ZERO + incrementor(T))
+neg_few{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_ZERO - incrementor(T))
 
-function extremum{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}, negative::Bool, inverted::Bool)
+function extremum{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, negative::Bool, inverted::Bool)
   if negative
     inverted ? (neg_few(T)) : (neg_many(T))
   else
@@ -42,11 +39,11 @@ end
 ################################################################################
 # PBOUND constants
 
-emptyset{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PFloat{lattice, epochbits}), zero(PFloat{lattice, epochbits}), PFLOAT_NULLSET)
-emptyset{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = PBound{lattice, epochbit}(zero(T), zero(T), PFLOAT_NULLSET)
+emptyset{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PTile{lattice, epochbits}), zero(PTile{lattice, epochbits}), PBOUND_NULLSET)
+emptyset{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = PBound{lattice, epochbit}(zero(T), zero(T), PBOUND_NULLSET)
 
-allprojectivereals{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PFloat{lattice, epochbits}), zero(PFloat{lattice, epochbits}), PFLOAT_ALLPREALS)
-allprojectivereals{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}}) = PBound{lattice, epochbits}(zero(T), zero(T), PFLOAT_ALLPREALS)
+allprojectivereals{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PTile{lattice, epochbits}), zero(PTile{lattice, epochbits}), PBOUND_ALLPREALS)
+allprojectivereals{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = PBound{lattice, epochbits}(zero(T), zero(T), PBOUND_ALLPREALS)
 ################################################################################
 
 export pos_many, neg_many, pos_few, neg_few

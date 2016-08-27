@@ -1,7 +1,7 @@
 #tools.jl - various tools to make programming Lnums easier.
 
 doc"""
-  @i reinterprets a PFloat as an integer
+  @i reinterprets a PTile as an integer
 """
 macro i(p)
   esc(:(reinterpret(UInt64, $p)))
@@ -15,13 +15,13 @@ macro s(p)
 end
 
 doc"""
-  @p reinterprets a integer as a PFloat
+  @p reinterprets a integer as a PTile
 """
 macro p(i)
-  esc(:(reinterpret(PFloat{lattice, epochbits}, $i)))
+  esc(:(reinterpret(PTile{lattice, epochbits}, $i)))
 end
 
-bitlength{lattice, epochbits}(::Type{PFloat{lattice, epochbits}}) = 1 + epochbits + latticebits(lattice)
+bitlength{lattice, epochbits}(::Type{PTile{lattice, epochbits}}) = 1 + epochbits + latticebits(lattice)
 
 doc"""
 the `@gen_code` macro rejigs the standard julia `@generate` macro so that at the
@@ -56,9 +56,9 @@ end
 
 doc"""
   the `@pfunction` macro is prepended to a function defined with parameters that
-  are generic Unum2 types (PFloat, PBound), and generates the function with
+  are generic Unum2 types (PTile, PBound), and generates the function with
   default parameters {lattice, epochbits}.  Also gives access to default type
-  variables P for PFloat{lattice, epochbits}, and B for PBound{lattice, epochbits},
+  variables P for PTile{lattice, epochbits}, and B for PBound{lattice, epochbits},
   ∅ for the NaN PBound and R "for all projective reals" PBound.
 """
 #creates a universal function f that operates across all types of unums
@@ -82,7 +82,7 @@ macro pfunction(f)
   parameters = f.args[1].args
 
   ptypedefs = quote
-    P = PFloat{lattice, epochbits}
+    P = PTile{lattice, epochbits}
     B = PBound{lattice, epochbits}
     N = emptyset(PBound{lattice, epochbits})
     R = allprojectivereals(PBound{lattice, epochbits})
@@ -95,10 +95,10 @@ macro pfunction(f)
     if (isa(parameters[idx], Expr)
          && (parameters[idx].head == :(::)))
       utype = parameters[idx].args[2]
-      if (utype in [:PFloat, :PBound])
+      if (utype in [:PTile, :PBound])
         f.args[1].args[idx].args[2] = :($utype{lattice, epochbits})
       elseif isa(utype, Expr)
-        if (utype.head == :curly) && (utype.args[1] == :Type) && (utype.args[2] in [:PFloat, :Pbound])
+        if (utype.head == :curly) && (utype.args[1] == :Type) && (utype.args[2] in [:PTile, :Pbound])
           f.args[1].args[idx].args[2].args[2] = :($utype{lattice, epochbits})
         end
       end
@@ -107,14 +107,3 @@ macro pfunction(f)
 
   return esc(:(Base.@__doc__ $f))
 end
-
-const z64 = 0x0000_0000_0000_0000
-const t64 = 0x8000_0000_0000_0000
-
-macro unumbers()
-  esc(quote
-    import Unum2: z64, t64
-  end)
-end
-
-export @unumbers

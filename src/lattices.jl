@@ -95,9 +95,9 @@ function search_lattice(l::Lattice, v)
 end
 
 const __LATTICE_DICT = Dict{Symbol, ASCIIString}(
-  :PTile3 => "three-bit-lattice.jl",
-  :PTile4 => "four-bit-lattice.jl",
-  :PTile5 => "five-bit-lattice.jl"
+  :PFloat3 => "three-bit-lattice.jl",
+  :PFloat4 => "four-bit-lattice.jl",
+  :PFloat5 => "five-bit-lattice.jl"
 )
 function import_lattice(l)
   s = string(Pkg.dir("Unum2"), "/src/lattices/", __LATTICE_DICT[l])
