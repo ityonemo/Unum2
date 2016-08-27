@@ -1,30 +1,30 @@
 #Unum2 multiplication.
 
 import Base./
-/{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = div(x, y, Val{:auto})
-/{lattice, epochbits}(x::PFloat{lattice, epochbits}) = multiplicativeinverse(x)
+/{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = div(x, y, Val{:auto})
+/{lattice, epochbits}(x::PTile{lattice, epochbits}) = multiplicativeinverse(x)
 
-function div{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+function div{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   mul(x, /(y), OT)
 end
 
-@generated function exact_arithmetic_division{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function exact_arithmetic_division{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
 
   #note that parameters passed to this function will always be pointing in the
   #same direction (out or in) relative to one.
-
-  div_table = Symbol("__$(lattice)_div_table")
-  inv_table = Symbol("__$(lattice)_inv_table")
+  div_table = table_name(lattice, :div)
+  inv_table = table_name(lattice, :inv)
+  
   m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
-    is_inf(x) && return inf(PFloat{lattice, epochbits})
-    is_inf(y) && return zero(PFloat{lattice, epochbits})
-    is_zero(x) && return zero(PFloat{lattice, epochbits})
-    is_zero(y) && return inf(PFloat{lattice, epochbits})
+    is_inf(x) && return inf(PTile{lattice, epochbits})
+    is_inf(y) && return zero(PTile{lattice, epochbits})
+    is_zero(x) && return zero(PTile{lattice, epochbits})
+    is_zero(y) && return inf(PTile{lattice, epochbits})
     is_one(x) && return /(y)
     is_one(y) && return x
     is_neg_one(x) && return -(/(y))
@@ -66,10 +66,10 @@ end
     end
 
     if (OT == __BOUND) || (OT == __AUTO)
-      PBound{lattice, epochbits}(synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, _l_res),
-      synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, _u_res))
+      PBound{lattice, epochbits}(synthesize(PTile{lattice, epochbits}, res_sign, res_inverted, res_epoch, _l_res),
+      synthesize(PTile{lattice, epochbits}, res_sign, res_inverted, res_epoch, _u_res))
     else
-      synthesize(PFloat{lattice, epochbits}, res_sign, res_inverted, res_epoch, res_value)
+      synthesize(PTile{lattice, epochbits}, res_sign, res_inverted, res_epoch, res_value)
     end
   end
 end

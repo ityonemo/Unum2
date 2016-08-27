@@ -1,14 +1,14 @@
 #Unum2 addition.
 
 import Base.+
-+{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = add(x, y, Val{:auto})
++{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = add(x, y, Val{:auto})
 
 
 #adds two numbers x, y
-function add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+function add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
 
-  is_inf(x) && return coerce(inf(PFloat{lattice,epochbits}), OT)
-  is_inf(y) && return coerce(inf(PFloat{lattice,epochbits}), OT)
+  is_inf(x) && return coerce(inf(PTile{lattice,epochbits}), OT)
+  is_inf(y) && return coerce(inf(PTile{lattice,epochbits}), OT)
   is_zero(x) && return coerce(y, OT)
   is_zero(y) && return coerce(x, OT)
 
@@ -19,7 +19,7 @@ function add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
   end
 end
 
-function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+function exact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(x) $ isnegative(y))
     exact_arithmetic_subtraction(x, -y, OT)
   else
@@ -27,7 +27,7 @@ function exact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y:
   end
 end
 
-@generated function exact_arithmetic_addition{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function exact_arithmetic_addition{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   #first figure out the epoch reduction limit
   add_table       = table_name(lattice, :add)
   add_inv_table   = table_name(lattice, :add_inv)
@@ -66,17 +66,11 @@ end
         #(result_value, result_epoch) = (h_epoch > l_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
       end
 
-      ((result_epoch) > $m_epoch) && return coerce(extremum(PFloat{lattice, epochbits}, h_negative, false), OT)
+      ((result_epoch) > $m_epoch) && return coerce(extremum(PTile{lattice, epochbits}, h_negative, false), OT)
 
-      return synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
+      return synthesize(PTile{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
     elseif ((h_inverted) && (l_inverted))
       result_inverted = true
-      if (h_epoch == l_epoch)
-        result_value = $add_inv_table[h_value >> 1  + 1, l_value >> 1 + 1]
-        result_epoch = (result_value > h_value) ? (h_epoch - 1) : h_epoch
-      else
-        return nothing # for now.
-      end
 
       #in case we've crossed over.
       if (result_epoch < 0)
@@ -84,12 +78,12 @@ end
         result_epoch = 0
       end
 
-      return synthesize(PFloat{lattice, epochbits}, h_negative, result_inverted, result_epoch, result_value, OT)
+      return synthesize(PTile{lattice, epochbits}, h_negative, result_inverted, result_epoch, result_value, OT)
     elseif (h_epoch == 0) && (l_epoch == 0) #h is not inverted, and l is inverted
       result_value = $add_cross_table[h_value >> 1 + 1, l_value >> 1 + 1]
       result_epoch = (result_value > h_value) ? (h_epoch + 1) : h_epoch
 
-      return synthesize(PFloat{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
+      return synthesize(PTile{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
     else
       return nothing #for now.
     end
@@ -169,14 +163,14 @@ end
   end
 end
 
-@generated function inexact_add{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
     quote
-      (is_neg_many(x) || is_neg_many(y)) ? neg_many(PFloat{lattice, epochbits}) : upperulp(exact_add(glb(x), glb(y), OT))
+      (is_neg_many(x) || is_neg_many(y)) ? neg_many(PTile{lattice, epochbits}) : upperulp(exact_add(glb(x), glb(y), OT))
     end
   elseif output == :upper
     quote
-      (is_pos_many(x) || is_pos_many(y)) ? pos_many(PFloat{lattice, epochbits}) : lowerulp(exact_add(lub(x), lub(y), OT))
+      (is_pos_many(x) || is_pos_many(y)) ? pos_many(PTile{lattice, epochbits}) : lowerulp(exact_add(lub(x), lub(y), OT))
     end
   else
     quote

@@ -2,25 +2,25 @@
 
 @unumbers
 
-import_lattice(:PFloat4)
+import_lattice(:PTile4)
 
 #create the entire circle of values.
-p4_inf   = PFloat4(Inf)
-p4n_many = PFloat4(-3)
-p4n_two  = PFloat4(-2)
-p4n_much = PFloat4(-1.5)
-p4n_one  = PFloat4(-1)
-p4n_most = PFloat4(-0.75)
-p4n_half = PFloat4(-0.5)
-p4n_some = PFloat4(-0.25)
-p4_zero  = PFloat4(0)
-p4p_some = PFloat4(0.25)
-p4p_half = PFloat4(0.5)
-p4p_most = PFloat4(0.75)
-p4p_one  = PFloat4(1)
-p4p_much = PFloat4(1.5)
-p4p_two  = PFloat4(2)
-p4p_many = PFloat4(3)
+p4_inf   = PTile4(Inf)
+p4n_many = PTile4(-3)
+p4n_two  = PTile4(-2)
+p4n_much = PTile4(-1.5)
+p4n_one  = PTile4(-1)
+p4n_most = PTile4(-0.75)
+p4n_half = PTile4(-0.5)
+p4n_some = PTile4(-0.25)
+p4_zero  = PTile4(0)
+p4p_some = PTile4(0.25)
+p4p_half = PTile4(0.5)
+p4p_most = PTile4(0.75)
+p4p_one  = PTile4(1)
+p4p_much = PTile4(1.5)
+p4p_two  = PTile4(2)
+p4p_many = PTile4(3)
 
 p4vec = [p4_inf, p4n_many, p4n_two, p4n_much, p4n_one, p4n_most, p4n_half, p4n_some, p4_zero, p4p_some, p4p_half, p4p_most, p4p_one, p4p_much, p4p_two, p4p_many]
 
@@ -50,21 +50,21 @@ end
 @test Unum2.decompose(p4p_two ) == (false, false, z64, 0x0000_0000_0000_0002)
 @test Unum2.decompose(p4p_many) == (false, false, z64, 0x0000_0000_0000_0003)
 
-@test Unum2.synthesize(PFloat4, true,  false, z64, 0x0000_0000_0000_0003) == (p4n_many)
-@test Unum2.synthesize(PFloat4, true,  false, z64, 0x0000_0000_0000_0002) == (p4n_two )
-@test Unum2.synthesize(PFloat4, true,  false, z64, 0x0000_0000_0000_0001) == (p4n_much)
-@test Unum2.synthesize(PFloat4, true,  false, z64, 0x0000_0000_0000_0000) == (p4n_one )
-@test Unum2.synthesize(PFloat4, true,  true,  z64, 0x0000_0000_0000_0001) == (p4n_most)
-@test Unum2.synthesize(PFloat4, true,  true,  z64, 0x0000_0000_0000_0002) == (p4n_half)
-@test Unum2.synthesize(PFloat4, true,  true,  z64, 0x0000_0000_0000_0003) == (p4n_some)
+@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0003) == (p4n_many)
+@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0002) == (p4n_two )
+@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0001) == (p4n_much)
+@test Unum2.synthesize(PTile4, true,  false, z64, 0x0000_0000_0000_0000) == (p4n_one )
+@test Unum2.synthesize(PTile4, true,  true,  z64, 0x0000_0000_0000_0001) == (p4n_most)
+@test Unum2.synthesize(PTile4, true,  true,  z64, 0x0000_0000_0000_0002) == (p4n_half)
+@test Unum2.synthesize(PTile4, true,  true,  z64, 0x0000_0000_0000_0003) == (p4n_some)
 #--------------------------------------------------------------------------------------
-@test Unum2.synthesize(PFloat4, false, true,  z64, 0x0000_0000_0000_0003) == (p4p_some)
-@test Unum2.synthesize(PFloat4, false, true,  z64, 0x0000_0000_0000_0002) == (p4p_half)
-@test Unum2.synthesize(PFloat4, false, true,  z64, 0x0000_0000_0000_0001) == (p4p_most)
-@test Unum2.synthesize(PFloat4, false, false, z64, 0x0000_0000_0000_0000) == (p4p_one )
-@test Unum2.synthesize(PFloat4, false, false, z64, 0x0000_0000_0000_0001) == (p4p_much)
-@test Unum2.synthesize(PFloat4, false, false, z64, 0x0000_0000_0000_0002) == (p4p_two )
-@test Unum2.synthesize(PFloat4, false, false, z64, 0x0000_0000_0000_0003) == (p4p_many)
+@test Unum2.synthesize(PTile4, false, true,  z64, 0x0000_0000_0000_0003) == (p4p_some)
+@test Unum2.synthesize(PTile4, false, true,  z64, 0x0000_0000_0000_0002) == (p4p_half)
+@test Unum2.synthesize(PTile4, false, true,  z64, 0x0000_0000_0000_0001) == (p4p_most)
+@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0000) == (p4p_one )
+@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0001) == (p4p_much)
+@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0002) == (p4p_two )
+@test Unum2.synthesize(PTile4, false, false, z64, 0x0000_0000_0000_0003) == (p4p_many)
 
 ################################################################################
 #test properties like negative and inverted.

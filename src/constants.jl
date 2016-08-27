@@ -1,10 +1,10 @@
 #constants.jl
 #in this implementation, the constants are all pretty straightforward.
 
-const pfloat_inf = 0x8000_0000_0000_0000
-const pfloat_zero = 0x0000_0000_0000_0000
-const pfloat_one = 0x4000_0000_0000_0000
-const pfloat_neg_one = 0xC000_0000_0000_0000
+const PTILE_INF = 0x8000_0000_0000_0000
+const PTILE_ZERO = 0x0000_0000_0000_0000
+const PTILE_ONE = 0x4000_0000_0000_0000
+const PTILE_NEG_ONE = 0xC000_0000_0000_0000
 
 @generated function incrementor{lattice, epochbits}(T::Type{PFloat{lattice, epochbits}})
   x = one(UInt64) << (63 - latticebits(lattice) - epochbits)

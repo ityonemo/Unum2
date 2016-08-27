@@ -1,5 +1,5 @@
 #4bt-test-mul.jl
-#testing an multiplication table for the 4 bit PFloat.
+#testing an multiplication table for the 4 bit PTile.
 #note the vector looks like this:
 #  inf (inf -2) -2  (-2 -1) -1  (-1 -0.5) -0.5 (-0.5 0)     0  (0 0.5) 0.5 (0.5 1)  1   (1 2)  2   (2 inf)
 # [1000  1001  1010  1011  1100  1101     1110  1111      0000  0001  0010  0011  0100  0101  0110  0111]

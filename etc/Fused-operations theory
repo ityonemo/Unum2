@@ -58,3 +58,39 @@ Proof, by induction over set construction.
 
 Corollary:  Operations +, -, *, /, implemented using lookup tables, have minimal
   bounding error.
+
+Observation:  The composition of two operations which have minimal bounding error
+  does not necessarily have minimal bounding error.  E.g.  FMA(a, b, c) := (a * b) + c
+  generally does not satisfy this property.  Examine the simple 4-bit PTile with
+  a = 2, b = 2, c = -2.  (a * b) yields the interval (2 ∞), and adding -2 yields
+  a final result of (0 ∞), which contains the correct solution [2] but also
+  includes severals tiles that do not: (0 1/2), [1/2], (1/2 1), [1], (1 2),
+  (2 ∞).
+
+"Repairing" a n-ary composed operation to have minimal bounding error is
+desirable.  One possibility is to naively iterate through all combinations of
+exact values and assign problematic values to a hash table, which can then be
+compared to a lookup prior to calculation.
+
+For the specific case of FMA, one potential problem is overflow, which can be
+easily "repaired" by holding the values in a temporary state beyond the upper
+limit of the lattice.  In the case where epoch calculations are performed,
+explicitly composing the multiply and add code, passing the epoch information
+between the two.  In the case of 4-bit and 5-bit unums, this strategy is
+sufficient to result in an FMA with minimal bounding error.  Most well-defined
+lattices will have this property.
+
+A third strategy is to rewrite the equation.  In the case of FMA, performing
+three calculations is possible:  (a * b) + c is equivalent to (a + c/b) * b and
+(b + c/a) * a.  Because lattice-based floating point lookup operations are fast,
+performing these operations (possibly in parallel), followed by a set
+intersection operation.  This strategy is sufficient to result in an FMA with
+minimal bounding error for 4-bit and 5-bit unums.  When generating lattice
+tables, it is relatively easy to identify which lattice inputs are repaired
+by rewrite.
+
+Combining all three strategies is likely to result in efficient,
+high-performance FMA (and other n-ary) operations, and for software
+implementations of this floating point, these cases can be identified at
+compile-time with minimal effort; for hardware implementations of lattices,
+all strategies are relatively easy as well.

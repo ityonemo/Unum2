@@ -1,17 +1,17 @@
 #Unum2 subtraction
 
 import Base.-
--{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = sub(x, y, Val{:auto})
--{lattice, epochbits}(x::PFloat{lattice, epochbits}) = additiveinverse(x)
+-{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = sub(x, y, Val{:auto})
+-{lattice, epochbits}(x::PTile{lattice, epochbits}) = additiveinverse(x)
 
-function sub{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+function sub{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   add(x, -y, OT)
 end
 
-function exact_arithmetic_subtraction{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+function exact_arithmetic_subtraction{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   is_zero(x) && return -y
   is_zero(y) && return x
-  (x == y) && return zero(PFloat{lattice, epochbits})
+  (x == y) && return zero(PTile{lattice, epochbits})
   #first, we should sort the two numbers into high
   flipped = isnegative(x) $ (x < y)
   (outer, inner) = (flipped) ? (y, x) : (x, y)
@@ -52,7 +52,7 @@ lattice_length(l::Symbol) = length(__MASTER_LATTICE_LIST[l])
   end
 end
 
-@generated function exact_arithmetic_subtraction_uninverted{lattice, epochbits, output}(outer::PFloat{lattice, epochbits}, inner::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function exact_arithmetic_subtraction_uninverted{lattice, epochbits, output}(outer::PTile{lattice, epochbits}, inner::PTile{lattice, epochbits}, OT::Type{Val{output}})
   sub_table             = table_name(lattice, :sub)
   sub_epoch_table       = table_name(lattice, :sub_epoch)
 
@@ -89,18 +89,18 @@ end
     end
 
     #check to see if we've gone really small.
-    (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
+    (result_epoch > $m_epoch) && return extremum(PTile{lattice, epochbits}, o_negative, true)
 
     if (OT == __BOUND) || (OT == __AUTO)
-      PBound{lattice, epochbits}(synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _l_res),
-      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _u_res))
+      PBound{lattice, epochbits}(synthesize(PTile{lattice, epochbits}, o_negative, result_inverted, result_epoch, _l_res),
+      synthesize(PTile{lattice, epochbits}, o_negative, result_inverted, result_epoch, _u_res))
     else
-      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
+      synthesize(PTile{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
     end
   end
 end
 
-@generated function exact_arithmetic_subtraction_inverted{lattice, epochbits, output}(outer::PFloat{lattice, epochbits}, inner::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function exact_arithmetic_subtraction_inverted{lattice, epochbits, output}(outer::PTile{lattice, epochbits}, inner::PTile{lattice, epochbits}, OT::Type{Val{output}})
 
   sub_inv_table         = table_name(lattice, :sub_inv)
   sub_inv_epoch_table   = table_name(lattice, :sub_inv_epoch)
@@ -121,13 +121,13 @@ end
       return nothing #for now.
     end
 
-    (result_epoch > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
+    (result_epoch > $m_epoch) && return extremum(PTile{lattice, epochbits}, o_negative, true)
 
-    synthesize(PFloat{lattice, epochbits}, o_negative, true, result_epoch, result_value)
+    synthesize(PTile{lattice, epochbits}, o_negative, true, result_epoch, result_value)
   end
 end
 
-@generated function exact_arithmetic_subtraction_crossed{lattice, epochbits, output}(outer::PFloat{lattice, epochbits}, inner::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function exact_arithmetic_subtraction_crossed{lattice, epochbits, output}(outer::PTile{lattice, epochbits}, inner::PTile{lattice, epochbits}, OT::Type{Val{output}})
 
   #first figure out the epoch reduction limit
   sub_cross_table       = table_name(lattice, :sub_cross)
@@ -165,13 +165,13 @@ end
     end
 
     #check to see if we've gone really small.
-    ((result_epoch) > $m_epoch) && return extremum(PFloat{lattice, epochbits}, o_negative, true)
+    ((result_epoch) > $m_epoch) && return extremum(PTile{lattice, epochbits}, o_negative, true)
 
     if (OT == __BOUND) || (OT == __AUTO)
-      B(synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _l_res),
-      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, _u_res))
+      B(synthesize(PTile{lattice, epochbits}, o_negative, result_inverted, result_epoch, _l_res),
+      synthesize(PTile{lattice, epochbits}, o_negative, result_inverted, result_epoch, _u_res))
     else
-      synthesize(PFloat{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
+      synthesize(PTile{lattice, epochbits}, o_negative, result_inverted, result_epoch, result_value)
     end
   end
 end

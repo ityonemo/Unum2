@@ -1,5 +1,5 @@
 #5bt-test-sub.jl
-#testing an subtraction table for the 5 bit PFloat.
+#testing an subtraction table for the 5 bit PTile.
 #this vector doesn't include negative numbers, or zero or inf (which is trivial)
 #note the vector looks like this:
 #         [1/8]       [1/4]       [1/2]        [1]         [2]         [4]         [8]

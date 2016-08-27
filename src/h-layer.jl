@@ -1,11 +1,11 @@
 #h-layer.jl
 
-function Base.bits{lattice, epochbits}(x::PFloat{lattice, epochbits})
+function Base.bits{lattice, epochbits}(x::PTile{lattice, epochbits})
   rep = @i(x)
-  bits(rep)[1:bitlength(PFloat{lattice,epochbits})]
+  bits(rep)[1:bitlength(PTile{lattice,epochbits})]
 end
 
-function Base.show{lattice, epochbits}(io::IO, x::PFloat{lattice, epochbits})
+function Base.show{lattice, epochbits}(io::IO, x::PTile{lattice, epochbits})
   if is_zero(x)
     print(io, "zero(")
     show(io, typeof(x))
@@ -29,11 +29,11 @@ function Base.show{lattice, epochbits}(io::IO, x::PFloat{lattice, epochbits})
 end
 
 function Base.show{lattice, epochbits}(io::IO, x::PBound{lattice, epochbits})
-  if (x.state == PFLOAT_SINGLETON)
+  if (x.state == PTile_SINGLETON)
     print(io, "▾(", typeof(x.lower), "(0b", bits(x.lower), "))")
-  elseif (x.state == PFLOAT_STDBOUND)
+  elseif (x.state == PTile_STDBOUND)
     print(io, typeof(x.lower), "(0b", bits(x.lower), ") → ", typeof(x.lower), "(0b", bits(x.upper), ")")
-  elseif (x.state == PFLOAT_ALLPREALS)
+  elseif (x.state == PTile_ALLPREALS)
     print(io, string("ℝᵖ(PBound{:", lattice ,",", epochbits, "})"))
   else
     print(io, string("∅(PBound{:", lattice ,",", epochbits, "})"))

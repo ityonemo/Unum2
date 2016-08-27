@@ -1,7 +1,7 @@
 #Unum2 multiplication.
 
 import Base.*
-*{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}) = mul(x, y, Val{:auto})
+*{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = mul(x, y, Val{:auto})
 
 function noisy_R{output}(P::Type, ::Type{Val{output}})
   if (output == :auto) || (output == :bound)
@@ -12,11 +12,11 @@ function noisy_R{output}(P::Type, ::Type{Val{output}})
   end
 end
 
-function mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
-  is_inf(x) && return (is_zero(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PFloat{lattice, epochbits}), OT))
-  is_inf(y) && return (is_zero(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PFloat{lattice, epochbits}), OT))
-  is_zero(x) && return (is_inf(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PFloat{lattice, epochbits}), OT))
-  is_zero(y) && return (is_inf(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PFloat{lattice, epochbits}), OT))
+function mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  is_inf(x) && return (is_zero(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PTile{lattice, epochbits}), OT))
+  is_inf(y) && return (is_zero(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PTile{lattice, epochbits}), OT))
+  is_zero(x) && return (is_inf(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PTile{lattice, epochbits}), OT))
+  is_zero(y) && return (is_inf(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PTile{lattice, epochbits}), OT))
   is_one(x) && return coerce(y, OT)
   is_one(y) && return coerce(x, OT)
   is_neg_one(x) && return coerce(-y, OT)
@@ -30,7 +30,7 @@ function mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloa
 end
 
 
-function exact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+function exact_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isinverted(x) $ isinverted(y))
     exact_arithmetic_division(x, multiplicativeinverse(y), OT)
   else
@@ -38,11 +38,11 @@ function exact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y:
   end
 end
 
-function __resultparity{lattice, epochbits}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits})
+function __resultparity{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits})
   return (((@i x) $ (@i y)) & SIGN_MASK) == 0
 end
 
-@generated function inexact_mul{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}})
+@generated function inexact_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
     quote
       #recast this as "inner/outer" versions
@@ -82,7 +82,7 @@ end
 end
 
 
-@generated function exact_arithmetic_multiplication{lattice, epochbits, output}(x::PFloat{lattice, epochbits}, y::PFloat{lattice, epochbits}, OT::Type{Val{output}} )
+@generated function exact_arithmetic_multiplication{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}} )
   mul_table = table_name(lattice, :mul)
   m_epoch = max_epoch(epochbits)
 
@@ -90,10 +90,10 @@ end
   isdefined(Unum2, mul_table) || create_multiplication_table(Val{lattice})
 
   quote
-    is_inf(x) &&     return coerce(inf(PFloat{lattice, epochbits}), OT)
-    is_inf(y) &&     return coerce(inf(PFloat{lattice, epochbits}), OT)
-    is_zero(x) &&    return coerce(zero(PFloat{lattice, epochbits}), OT)
-    is_zero(y) &&    return coerce(zero(PFloat{lattice, epochbits}), OT)
+    is_inf(x) &&     return coerce(inf(PTile{lattice, epochbits}), OT)
+    is_inf(y) &&     return coerce(inf(PTile{lattice, epochbits}), OT)
+    is_zero(x) &&    return coerce(zero(PTile{lattice, epochbits}), OT)
+    is_zero(y) &&    return coerce(zero(PTile{lattice, epochbits}), OT)
     is_one(x) &&     return coerce(y                               , OT)
     is_one(y) &&     return coerce(x                               , OT)
     is_neg_one(x) && return coerce(-y                              , OT)
@@ -121,9 +121,9 @@ end
     res_sign = x_negative $ y_negative
 
     #check to see if we overflow to extremum.
-    ((res_epoch) > $m_epoch) && return coerce(extremum(PFloat{lattice, epochbits}, res_sign, x_inverted), OT)
+    ((res_epoch) > $m_epoch) && return coerce(extremum(PTile{lattice, epochbits}, res_sign, x_inverted), OT)
 
-    coerce(synthesize(PFloat{lattice, epochbits}, res_sign, x_inverted, res_epoch, res_value), OT)
+    coerce(synthesize(PTile{lattice, epochbits}, res_sign, x_inverted, res_epoch, res_value), OT)
   end
 end
 

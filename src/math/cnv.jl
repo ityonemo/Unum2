@@ -1,5 +1,5 @@
-#cnv.jl - conversions from general number types to a PFloat.
-function cnv{lattice, epochbits}(P::Type{PFloat{lattice, epochbits}}, x::Real)
+#cnv.jl - conversions from general number types to a PTile.
+function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
   #set key constants.
   T = typeof(x)
   _pivot = Float64(pivot(lattice))
@@ -48,4 +48,4 @@ function cnv{lattice, epochbits}(P::Type{PFloat{lattice, epochbits}}, x::Real)
   synthesize(P, is_negative, is_inverted, result_epoch, result_value)
 end
 
-Base.call{lattice, epochbits}(P::Type{PFloat{lattice, epochbits}}, x) = cnv(P, x)
+Base.call{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x) = cnv(P, x)

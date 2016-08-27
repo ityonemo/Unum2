@@ -36,7 +36,7 @@ latticemask(epochbits) = (one(UInt64) << (63 - epochbits)) - one(UInt64)
 doc"""
   lvalue retrieves the lattice value.
 """
-@generated function lvalue{lattice, epochbits}(x::PFloat{lattice, epochbits})
+@generated function lvalue{lattice, epochbits}(x::PTile{lattice, epochbits})
   shift = 63 - latticebits(lattice) - epochbits
   mask = latticemask(epochbits)
   :(((@i x) & $mask) >> $shift)
@@ -95,9 +95,9 @@ function search_lattice(l::Lattice, v)
 end
 
 const __LATTICE_DICT = Dict{Symbol, ASCIIString}(
-  :PFloat3 => "three-bit-lattice.jl",
-  :PFloat4 => "four-bit-lattice.jl",
-  :PFloat5 => "five-bit-lattice.jl"
+  :PTile3 => "three-bit-lattice.jl",
+  :PTile4 => "four-bit-lattice.jl",
+  :PTile5 => "five-bit-lattice.jl"
 )
 function import_lattice(l)
   s = string(Pkg.dir("Unum2"), "/src/lattices/", __LATTICE_DICT[l])

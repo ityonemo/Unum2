@@ -1,85 +1,85 @@
 
-Comprehensive fused multiply add on the 4-bit PFloat.
+Comprehensive fused multiply add on the 4-bit PTile.
 
-a = PFloat4(0b0010) #0.5
-b = PFloat4(0b0100) #1.0
-c = PFloat4(0b0110) #2.0
+a = PTile4(0b0010) #0.5
+b = PTile4(0b0100) #1.0
+c = PTile4(0b0110) #2.0
 
 # fused-multiply add
 
-(a * a) + a == PFloat4(0b0011)
-(a * a) + b == PFloat4(0b0101)
-(a * a) + c == PFloat4(0b0111)
+(a * a) + a == PTile4(0b0011)
+(a * a) + b == PTile4(0b0101)
+(a * a) + c == PTile4(0b0111)
 
-(a * b) + a == one(PFloat4)
-(a * b) + b == PFloat4(0b0101)
-(a * b) + c == PFloat4(0b0111)
+(a * b) + a == one(PTile4)
+(a * b) + b == PTile4(0b0101)
+(a * b) + c == PTile4(0b0111)
 
-(a * c) + a == PFloat4(0b0101)
-(a * c) + b == PFloat4(0b0110)
-(a * c) + c == PFloat4(0b0111)
+(a * c) + a == PTile4(0b0101)
+(a * c) + b == PTile4(0b0110)
+(a * c) + c == PTile4(0b0111)
 
-(b * a) + a == one(PFloat4)
-(b * a) + b == PFloat4(0b0101)
-(b * a) + c == PFloat4(0b0111)
+(b * a) + a == one(PTile4)
+(b * a) + b == PTile4(0b0101)
+(b * a) + c == PTile4(0b0111)
 
-(b * b) + a == PFloat4(0b0101)
-(b * b) + b == PFloat4(0b0110)
-(b * b) + c == PFloat4(0b0111)
+(b * b) + a == PTile4(0b0101)
+(b * b) + b == PTile4(0b0110)
+(b * b) + c == PTile4(0b0111)
 
-(b * c) + a == PFloat4(0b0111)
-(b * c) + b == PFloat4(0b0111)
-(b * c) + c == PFloat4(0b0111)
+(b * c) + a == PTile4(0b0111)
+(b * c) + b == PTile4(0b0111)
+(b * c) + c == PTile4(0b0111)
 
-(c * a) + a == PFloat4(0b0101)
-(c * a) + b == PFloat4(0b0110)
-(c * a) + c == PFloat4(0b0111)
+(c * a) + a == PTile4(0b0101)
+(c * a) + b == PTile4(0b0110)
+(c * a) + c == PTile4(0b0111)
 
-(c * b) + a == PFloat4(0b0111)
-(c * b) + b == PFloat4(0b0111)
-(c * b) + c == PFloat4(0b0111)
+(c * b) + a == PTile4(0b0111)
+(c * b) + b == PTile4(0b0111)
+(c * b) + c == PTile4(0b0111)
 
-(c * c) + a == PFloat4(0b0111)
-(c * c) + b == PFloat4(0b0111)
-(c * c) + c == PFloat4(0b0111)
+(c * c) + a == PTile4(0b0111)
+(c * c) + b == PTile4(0b0111)
+(c * c) + c == PTile4(0b0111)
 
 # fused-multiply subtract
-(a * a) - a == PFloat4(0b1111)
-(a * a) - b == PFloat4(0b1101)
-(a * a) - c == PFloat4(0b1011)
+(a * a) - a == PTile4(0b1111)
+(a * a) - b == PTile4(0b1101)
+(a * a) - c == PTile4(0b1011)
 
-(a * b) - a == zero(PFloat4)
-(a * b) - b == PFloat4(0b1110)
-(a * b) - c == PFloat4(0b1011)
+(a * b) - a == zero(PTile4)
+(a * b) - b == PTile4(0b1110)
+(a * b) - c == PTile4(0b1011)
 
-(a * c) - a == PFloat4(0b0010)
-(a * c) - b == zero(PFloat4)
-(a * c) - c == -one(PFloat4)
+(a * c) - a == PTile4(0b0010)
+(a * c) - b == zero(PTile4)
+(a * c) - c == -one(PTile4)
 
-(b * a) - a == zero(PFloat4)
-(b * a) - b == PFloat4(0b1110)
-(b * a) - c == PFloat4(0b1011)
+(b * a) - a == zero(PTile4)
+(b * a) - b == PTile4(0b1110)
+(b * a) - c == PTile4(0b1011)
 
-(b * b) - a == PFloat4(0b0010)
-(b * b) - b == zero(PFloat4)
-(b * b) - c == -one(PFloat4)
+(b * b) - a == PTile4(0b0010)
+(b * b) - b == zero(PTile4)
+(b * b) - c == -one(PTile4)
 
-(b * c) - a == PFloat4(0b0101)
-(b * c) - b == one(PFloat4)
-(b * c) - c == zero(PFloat4)
+(b * c) - a == PTile4(0b0101)
+(b * c) - b == one(PTile4)
+(b * c) - c == zero(PTile4)
 
-(c * a) - a == PFloat4(0b0010)
-(c * a) - b == zero(PFloat4)
-(c * a) - c == -one(PFloat4)
+(c * a) - a == PTile4(0b0010)
+(c * a) - b == zero(PTile4)
+(c * a) - c == -one(PTile4)
 
-(c * b) - a == PFloat4(0b0101)
-(c * b) - b == one(PFloat4)
-(c * b) - c == zero(PFloat4)
+(c * b) - a == PTile4(0b0101)
+(c * b) - b == one(PTile4)
+(c * b) - c == zero(PTile4)
 
-(c * c) - a == PFloat4(0b0101) → PFloat4(0b0111)
-(c * c) - b == PFloat4(0b0101) → PFloat4(0b0111)
-(c * c) - c == PFloat4(0b0001) → PFloat4(0b0111)
+(c * c) - a == PTile4(0b0101) → PTile4(0b0111)
+(c * c) - b == PTile4(0b0101) → PTile4(0b0111)
+(c * c) - c == PTile4(0b0001) → PTile4(0b0111)
 
-(c - a/c) * c == PFloat4(0b0111)
-(c - b/c) * c == PFloat4(0b0111)
-(c - c/c) * c == PFloat4(0b0110)
+(c - a/c) * c == PTile4(0b0111)
+(c - b/c) * c == PTile4(0b0111)
+(c - c/c) * c == PTile4(0b0110)
