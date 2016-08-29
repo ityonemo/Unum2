@@ -1,8 +1,75 @@
-#Unum2 addition.
+#add.jl -- Unum2 addition.
+#impmements the following:
+#  + Operator overloading.
+#  PBound addition.
+#  Algorithmic filtering for algorithmic addition vs. algorithmic subtraction
+#  Addition algorithms.
+#  Addition table generation.
 
 import Base.+
-+{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = add(x, y, Val{:auto})
 
+################################################################################
+# OPERATOR OVERLOADING
+################################################################################
+
+@pfunction function +(lhs::PBound, rhs::PBound)
+  #encapuslates calling the more efficient "add" function, which does not need
+  #to allocate memory.
+
+  res::B = emptyset(B)
+  add!(res, lhs, rhs)
+  res
+end
+
+################################################################################
+# PBOUND ADDITION
+################################################################################
+
+doc"""
+  `Unum2.add!(res::Pbound, lhs::Pbound, rhs::PBound)`  Takes two input values,
+  lhs and rhs and adds them together into the memory slot allocated by res.
+
+  `Unum2.add!(acc::Pbound, rhs::PBound)`  Takes the value in rhs and adds it
+  in to the accumulator slot.
+"""
+@pfunction function add!(res::PBound, lhs::PBound, rhs::Pbound)
+  copy!(res, lhs)
+  add!(res, rhs)
+end
+
+@pfunction function add!(acc::PBound, rhs::PBound)
+  (isempty(acc) || isempty(rhs)) && (set_empty!(acc); return)
+  (ispreals(acc) || ispreals(rhs)) && (set_preals!(acc); return)
+
+  check_roundsinf::Bool = roundsinf(acc) || roundsinf(rhs)
+
+  #create some proxy variables that refer to the correct type
+  l_upper_proxy::T = issingle(acc) ? acc.lower : acc.upper
+  r_upper_proxy::T = issingle(rhs) ? rhs.lower : rhs.upper
+
+  set_double!(dest)
+
+  #for addition, result_upper = left_upper + right_upper, always.
+  acc.upper = add(l_upper_proxy, r_upper_proxy, __UPPER)
+  #for addition, result_lower = left_lower + right_lower, always.
+  acc.lower = add(acc.lower, rhs.lower, __LOWER)
+
+  if (check_roundsinf)
+    # let's make sure our result still rounds inf, this is a property which is
+    # invariant under addition.  Losing this property suggests that the answer
+    # should be recast as "allreals."  While we're at it, check to see if the
+    # answer ends now "touch", which makes them "allreals".
+    (@s acc.lower) <= (@s acc.upper) && (set_preals!(acc); return)
+    (next(acc.upper) == acc.lower) && (set_preals!(acc); return)
+  end
+
+  (acc.upper == acc.lower) && set_single!(acc)
+
+  nothing
+end
+
+#=
++{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = add(x, y, Val{:auto})
 
 #adds two numbers x, y
 function add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
@@ -120,9 +187,6 @@ end
   add_inv_table = table_name(lattice, :add_inv)
   quote
     #store the lattice values and the pivot values.
-    lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
-    l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
@@ -181,3 +245,4 @@ end
     end
   end
 end
+=#

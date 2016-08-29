@@ -29,11 +29,11 @@ function Base.show{lattice, epochbits}(io::IO, x::PTile{lattice, epochbits})
 end
 
 function Base.show{lattice, epochbits}(io::IO, x::PBound{lattice, epochbits})
-  if (x.state == PTile_SINGLETON)
+  if issingle(x)
     print(io, "▾(", typeof(x.lower), "(0b", bits(x.lower), "))")
-  elseif (x.state == PTile_STDBOUND)
+  elseif isdouble(x)
     print(io, typeof(x.lower), "(0b", bits(x.lower), ") → ", typeof(x.lower), "(0b", bits(x.upper), ")")
-  elseif (x.state == PTile_ALLPREALS)
+  elseif ispreals(x)
     print(io, string("ℝᵖ(PBound{:", lattice ,",", epochbits, "})"))
   else
     print(io, string("∅(PBound{:", lattice ,",", epochbits, "})"))

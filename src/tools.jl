@@ -43,8 +43,6 @@ macro gen_code(f)
   esc(:(@generated $f))
 end
 
-
-
 #fname extracts the function name from the expression
 function __fname(ex::Expr)
   ex.args[1].args[1]
@@ -82,7 +80,7 @@ macro pfunction(f)
   parameters = f.args[1].args
 
   ptypedefs = quote
-    P = PTile{lattice, epochbits}
+    T = PTile{lattice, epochbits}
     B = PBound{lattice, epochbits}
     N = emptyset(PBound{lattice, epochbits})
     R = allprojectivereals(PBound{lattice, epochbits})

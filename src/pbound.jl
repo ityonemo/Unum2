@@ -34,6 +34,15 @@ end
 #Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PBound{lattice, epochbits}) = PBound{lattice, epochbits}(x.lower, x.upper, x.state)
 Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PTile{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PTile{lattice, epochbits}), PTile_SINGLETON)
 Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}) = PBound{lattice, epochbits}
+
+function Base.copy!{lattice, epochbits}(dest::PBound{lattice, epochbits}, src::PBound{lattice, epochbits})
+  dest.lower = src.lower
+  dest.upper = src.upper
+  dest.state = src.state
+  
+  nothing
+end
+
 # COOL SYMBOLS FOR PBOUNDS
 
 function →{lattice, epochbits}(lower::PTile{lattice, epochbits}, upper::PTile{lattice, epochbits})
