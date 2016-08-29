@@ -14,7 +14,7 @@ end
   #same direction (out or in) relative to one.
   div_table = table_name(lattice, :div)
   inv_table = table_name(lattice, :inv)
-  
+
   m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
@@ -94,23 +94,6 @@ end
 
         $div_table[idx, idx2] = @i search_lattice(lattice_values, true_value)
       end
-    end
-  end
-end
-
-@generated function create_inversion_table{lattice}(::Type{Val{lattice}})
-  inv_table = Symbol("__$(lattice)_inv_table")
-  quote
-    lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
-    l = length(lattice_values)
-
-    #actually allocate the memory for the inversion table.
-    global const $inv_table = Vector{UInt64}(l)
-
-    for idx = 1:l
-      true_value = pivot_value / lattice_values[idx]
-      $inv_table[idx] = @i search_lattice(lattice_values, true_value)
     end
   end
 end

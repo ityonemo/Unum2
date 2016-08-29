@@ -3,7 +3,7 @@ using Base.Test
 
 include("testtools.jl")
 include("4bittest.jl")
-include("5bittest.jl")
+#include("5bittest.jl")
 
 
 #=

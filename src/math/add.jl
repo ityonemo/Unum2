@@ -29,10 +29,10 @@ doc"""
   `Unum2.add!(res::PBound, lhs::PBound, rhs::PBound)`  Takes two input values,
   lhs and rhs and adds them together into the memory slot allocated by res.
 
-  `Unum2.add!(acc::Pbound, rhs::PBound)`  Takes the value in rhs and adds it
+  `Unum2.add!(acc::PBound, rhs::PBound)`  Takes the value in rhs and adds it
   in to the accumulator slot.
 """
-@pfunction function add!(res::PBound, lhs::PBound, rhs::Pbound)
+@pfunction function add!(res::PBound, lhs::PBound, rhs::PBound)
   copy!(res, lhs)
   add!(res, rhs)
 end
@@ -47,7 +47,7 @@ end
   l_upper_proxy::T = issingle(acc) ? acc.lower : acc.upper
   r_upper_proxy::T = issingle(rhs) ? rhs.lower : rhs.upper
 
-  set_double!(dest)
+  set_double!(acc)
 
   #for addition, result_upper = left_upper + right_upper, always.
   acc.upper = add(l_upper_proxy, r_upper_proxy, __UPPER)
@@ -62,6 +62,8 @@ end
     (@s acc.lower) <= (@s acc.upper) && (set_preals!(acc); return)
     (next(acc.upper) == acc.lower) && (set_preals!(acc); return)
   end
+
+  println("hi, res: $(bits(reinterpret(UInt64,acc.lower)))  -> $(bits(reinterpret(UInt64,acc.upper))) $(acc.lower == acc.upper)")
 
   (acc.upper == acc.lower) && set_single!(acc)
 
@@ -78,96 +80,147 @@ doc"""
   lhs, and rhs, and adds them.  It then strictly outputs the PTile that corresponds
   to the output type, which may be "upper" or "lower."
 """
+@generated function add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  #guard this function, protecting from other types of output values besides
+  #upper or lower.
 
-function add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  is_inf(x) && return inf(PTile{lattice,epochbits})
-  is_inf(y) && return inf(PTile{lattice,epochbits})
-  is_zero(x) && return y
-  is_zero(y) && return x
-
-  if isexact(x) & isexact(y)
-    exact_add(x, y, OT)
-  else
-    inexact_add(x, y, OT)
-  end
-end
-
-#=
-#adds two numbers x, y
-
-function exact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  if (isnegative(x) $ isnegative(y))
-    exact_arithmetic_subtraction(x, -y, OT)
-  else
-    exact_arithmetic_addition(x, y, OT)
-  end
-end
-
-@generated function exact_arithmetic_addition{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  #first figure out the epoch reduction limit
-  add_table       = table_name(lattice, :add)
-  add_inv_table   = table_name(lattice, :add_inv)
-  add_cross_table = table_name(lattice, :add_cross)
-  m_epoch = max_epoch(epochbits)
-
-  #create the additive reduction table, if necessary.
-  #NB THE MORE ACCURATE WAY TO DO THIS IS TO HAVE A FULL ADDITION MATRIX FOR EACH
-  #EPOCH REDUCTION, BUT THIS IS THE MORE MEMORY-PERFORMANT WAY TO DO THIS.  IF
-  #THE LATTICE DELTA IS NEVER DECREASING, THIS IS ALWAYS GOOD ENOUGH?  MAYBE.
-  #create the addition table, if necessary.
-
-  isdefined(Unum2, add_table)       || create_addition_table(Val{lattice})
-  isdefined(Unum2, add_inv_table)   || create_inverted_addition_table(Val{lattice})
-  isdefined(Unum2, add_cross_table) || create_crossed_addition_table(Val{lattice})
+  (output != :upper) && (output != :lower) && throw(ArgumentError("output type $output is not supported"))
 
   quote
-    is_zero(x) && return y
-    is_zero(y) && return x
-    #reorder the two values so that they're in magnitude order.
-    (h, l) = ((x > y) $ (isnegative(x))) ? (x, y) : (y, x)
+    (is_inf(lhs) | is_inf(rhs)) && return inf(PTile{lattice,epochbits})
+    is_zero(lhs) && return rhs
+    is_zero(rhs) && return lhs
 
-    (h_negative, h_inverted, h_epoch, h_value) = decompose(h)
-    (l_negative, l_inverted, l_epoch, l_value) = decompose(l)
-
-    result_epoch::Int64
-
-    #for now, only support adding a non-inverted value to a non-inverted value.
-    if (!h_inverted) && (!l_inverted)
-      #for now, only support adding things that are in the same epoch.
-      if h_epoch == l_epoch
-        result_value = $add_table[h_value >> 1 + 1, l_value >> 1 + 1]
-        result_epoch = (result_value < h_value) ? (h_epoch + 1) : h_epoch
-      else
-        return nothing #for now.
-        #(result_value, result_epoch) = (h_epoch > l_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
-      end
-
-      ((result_epoch) > $m_epoch) && return coerce(extremum(PTile{lattice, epochbits}, h_negative, false), OT)
-
-      return synthesize(PTile{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
-    elseif ((h_inverted) && (l_inverted))
-      result_inverted = true
-
-      #in case we've crossed over.
-      if (result_epoch < 0)
-        result_inverted = false
-        result_epoch = 0
-      end
-
-      return synthesize(PTile{lattice, epochbits}, h_negative, result_inverted, result_epoch, result_value, OT)
-    elseif (h_epoch == 0) && (l_epoch == 0) #h is not inverted, and l is inverted
-      result_value = $add_cross_table[h_value >> 1 + 1, l_value >> 1 + 1]
-      result_epoch = (result_value > h_value) ? (h_epoch + 1) : h_epoch
-
-      return synthesize(PTile{lattice, epochbits}, h_negative, false, result_epoch, result_value, OT)
+    if isexact(lhs) & isexact(rhs)
+      exact_add(lhs, rhs, OT)
     else
-      return nothing #for now.
+      inexact_add(lhs, rhs, OT)
+    end
+  end
+end
+
+#sometimes you need to double check it's not a special value.
+function checked_exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  is_zero(lhs) && return rhs;
+  is_zero(rhs) && return lhs;
+
+  exact_add(lhs, rhs, OT)
+end
+
+
+function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  if (isnegative(lhs) $ isnegative(rhs))
+    exact_algorithmic_subtraction(lhs, -rhs, OT)
+  else
+    exact_algorithmic_addition(lhs, rhs, OT)
+  end
+end
+
+
+@generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  if output == :lower
+    quote
+      (is_neg_many(x) || is_neg_many(y)) ? neg_many(PTile{lattice, epochbits}) : upperulp(checked_exact_add(glb(x), glb(y), OT))
+    end
+  elseif output == :upper
+    quote
+      (is_pos_many(x) || is_pos_many(y)) ? pos_many(PTile{lattice, epochbits}) : lowerulp(checked_exact_add(lub(x), lub(y), OT))
     end
   end
 end
 
 ################################################################################
+# ALGORITHMIC ADDITION
+################################################################################
+
+function exact_algorithmic_addition{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  #reorder the two values so that they're in magnitude order.
+  (h, l) = ((lhs > rhs) $ (isnegative(lhs))) ? (lhs, rhs) : (rhs, lhs)
+
+  big = decompose(h)
+  sml = decompose(l)
+
+  res::__dc_tile = big
+
+  if is_uninverted(big) && is_uninverted(sml) #add a non-inverted value to a non-inverted value.
+    (res.epoch, res.lvalue) = uninverted_addition_decomposed(big, sml, Val{lattice}, OT)
+  elseif (is_inverted(big) && is_inverted(sml))   #add an inverted value to an inverted value.
+    (invert, res.epoch, res.lvalue) = inverted_addition_decomposed(big, sml, Val{lattice}, OT)
+    invert && set_uninverted!(res)
+  else #add two values which are crossed.
+    (res.epoch, res.lvalue) = crossed_addition_decomposed(big, sml, Val{lattice}, OT)
+  end
+
+  #reconstitute the result.
+  synthesize(PTile{lattice, epochbits}, res)
+end
+
+
+#perform the calculation of uninverted addition using partial (decomposed) values.
+@generated function uninverted_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+
+  #ensure that the requisite tables exist.
+  add_table = table_name(lattice, :add)
+  isdefined(Unum2, add_table) || create_addition_table(Val{lattice})
+
+  quote
+    if big.epoch == sml.epoch
+      res_value = $add_table[big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+      res_epoch = (res_value < big.lvalue) ? (big.epoch + 1) : big.epoch
+    else
+      return nothing #for now.
+      #(result_value, result_epoch) = (h_epoch > l_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
+    end
+    (res_epoch, res_value)
+  end
+end
+
+#perform the calculation of inverted addition using partial (decomposed) values.
+@generated function inverted_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+
+  #ensure that the requisite tables exist.
+  add_inv_table = table_name(lattice, :add_inv)
+  isdefined(Unum2, add_inv_table) || create_inverted_addition_table(Val{lattice})
+  quote
+    if (big.epoch == sml.epoch)
+      res_value = $add_inv_table[big.lvalue >> 1  + 1, big.lvalue >> 1 + 1]
+      res_epoch = (res_value > big.lvalue) ? (big.epoch - 1) : big.epoch
+    else
+      return nothing # for now.
+    end
+
+    #may need to reverse the orientation on the result.
+    res_uninvert = false
+    if (res_epoch < 0)
+      res_uninvert = true
+      res_epoch = (-res_epoch) - 1
+      res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+    end
+
+    (res_uninvert, res_epoch, res_value)
+  end
+end
+
+@generated function crossed_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+
+  #ensure that the requisite tables exist.
+  add_cross_table = table_name(lattice, :add_cross)
+  isdefined(Unum2, add_cross_table) || create_crossed_addition_table(Val{lattice})
+  quote
+    if (big.epoch == 0) && (big.epoch == 0) #h is not inverted, and l is inverted
+      res_value = $add_cross_table[big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+      res_epoch = (res_value < big.lvalue) ? (big.epoch + 1) : big.epoch
+    else
+      return nothing #for now.
+    end
+
+    (res_epoch, res_value)
+  end
+end
+
+################################################################################
 # ADDITION TABLES
+################################################################################
 
 @generated function create_addition_table{lattice}(::Type{Val{lattice}})
   add_table = table_name(lattice, :add)
@@ -196,6 +249,9 @@ end
   add_inv_table = table_name(lattice, :add_inv)
   quote
     #store the lattice values and the pivot values.
+    lattice_values = __MASTER_LATTICE_LIST[lattice]
+    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
@@ -235,23 +291,3 @@ end
     end
   end
 end
-
-@generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  if output == :lower
-    quote
-      (is_neg_many(x) || is_neg_many(y)) ? neg_many(PTile{lattice, epochbits}) : upperulp(exact_add(glb(x), glb(y), OT))
-    end
-  elseif output == :upper
-    quote
-      (is_pos_many(x) || is_pos_many(y)) ? pos_many(PTile{lattice, epochbits}) : lowerulp(exact_add(lub(x), lub(y), OT))
-    end
-  else
-    quote
-      _l = inexact_add(x, y, Val{:lower})
-      _u = inexact_add(x, y, Val{:upper})
-
-      (output == :bound) ? PBound{lattice, epochbits}(_l, _u) : _auto(_l, _u)
-    end
-  end
-end
-=#

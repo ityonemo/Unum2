@@ -1,7 +1,5 @@
 
-#the synthesize/decompose functions convert a unum into a "deconstructed tile"
-#object.  deconstructed tile will have (hopefully) register-bound values as
-#it's passed between utility functions.
+#dc_tile.jl - type definition and user functions for the __dc_tile type.
 
 const __DC_NEGATIVE = 0x02
 const __DC_INVERTED = 0x01
@@ -33,10 +31,7 @@ flip_inverted!(v::__dc_tile)  = (v.flags $= __DC_INVERTED; nothing)
 import Base: ==
 ==(a::__dc_tile, b::__dc_tile) = (a.flags == b.flags) && (a.epoch == b.epoch) && (a.lvalue == b.lvalue)
 
-#note that the lattice component of the tile value might be flipped based on the epoch and the sign.
-synthesize{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, v::__dc_tile) = synthesize(T, v::__dc_tile, __AUTO)
-
-@generated function synthesize{lattice, epochbits, output}(T::Type{PTile{lattice, epochbits}}, v::__dc_tile, OT::Type{Val{output}})
+@generated function synthesize{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, v::__dc_tile)
   eshift = latticebits(lattice)
   tshift = PT_bits - 1 - latticebits(lattice) - epochbits
   m_epoch = max_epoch(epochbits)
@@ -48,7 +43,7 @@ synthesize{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, v::__dc_tile)
     res *= flag_parity(v) ? -one(ST_Int) : one(ST_Int)
     res = (res & @s(MAG_MASK)) | @s(is_negative(v) ? PTILE_INF : PTILE_ZERO)
     #synthesize epoch + lvalue combination.
-    coerce((@p res), OT)
+    @p res
   end
 end
 
