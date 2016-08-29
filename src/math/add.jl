@@ -2,7 +2,7 @@
 #impmements the following:
 #  + Operator overloading.
 #  PBound addition.
-#  Algorithmic filtering for algorithmic addition vs. algorithmic subtraction
+#  Call decision for algorithmic addition vs. algorithmic subtraction
 #  Addition algorithms.
 #  Addition table generation.
 
@@ -26,7 +26,7 @@ end
 ################################################################################
 
 doc"""
-  `Unum2.add!(res::Pbound, lhs::Pbound, rhs::PBound)`  Takes two input values,
+  `Unum2.add!(res::PBound, lhs::PBound, rhs::PBound)`  Takes two input values,
   lhs and rhs and adds them together into the memory slot allocated by res.
 
   `Unum2.add!(acc::Pbound, rhs::PBound)`  Takes the value in rhs and adds it
@@ -68,16 +68,22 @@ end
   nothing
 end
 
-#=
-+{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = add(x, y, Val{:auto})
 
-#adds two numbers x, y
+################################################################################
+# CALL DECISION for algorithmic addition or subtraction.
+################################################################################
+
+doc"""
+  `Unum2.add(lhs::PTile, rhs::PTile, ::Type{Val{output}})`  Takes two input values,
+  lhs, and rhs, and adds them.  It then strictly outputs the PTile that corresponds
+  to the output type, which may be "upper" or "lower."
+"""
+
 function add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-
-  is_inf(x) && return coerce(inf(PTile{lattice,epochbits}), OT)
-  is_inf(y) && return coerce(inf(PTile{lattice,epochbits}), OT)
-  is_zero(x) && return coerce(y, OT)
-  is_zero(y) && return coerce(x, OT)
+  is_inf(x) && return inf(PTile{lattice,epochbits})
+  is_inf(y) && return inf(PTile{lattice,epochbits})
+  is_zero(x) && return y
+  is_zero(y) && return x
 
   if isexact(x) & isexact(y)
     exact_add(x, y, OT)
@@ -85,6 +91,9 @@ function add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{
     inexact_add(x, y, OT)
   end
 end
+
+#=
+#adds two numbers x, y
 
 function exact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(x) $ isnegative(y))

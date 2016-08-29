@@ -9,11 +9,9 @@ const PBOUND_ALLPREALS = 0x03 #all projective reals
 #create a series of value types which can specify the nature of the output.
 const __LOWER = Val{:lower}  #if the result is a PBound, only output the lower PTile.
 const __UPPER = Val{:upper}  #if the result is a PBound, only output the upper PTile.
-const __INNER = Val{:inner}  #if the result is a PBound, only output the inner PTile. (only use for multiplication)
-const __OUTER = Val{:outer}  #if the result is a PBound, only output the outer PTile. (only use for multiplication)
+const __INNER = Val{:inner}  #if the result is a PBound, only output the inner PTile.
+const __OUTER = Val{:outer}  #if the result is a PBound, only output the outer PTile.
 
-const __BOUND = Val{:bound}  #if the result is a PBound, output the entire PBound.  Promote PTiles to PBound
-const __AUTO  = Val{:auto}   #output a PTile or a PBound as desired.
 #note the __AUTO case will result in the worst performance, because the julia
 #typesystem will have to keep track of types during runtime instead of compile t ime.
 
@@ -39,7 +37,7 @@ function Base.copy!{lattice, epochbits}(dest::PBound{lattice, epochbits}, src::P
   dest.lower = src.lower
   dest.upper = src.upper
   dest.state = src.state
-  
+
   nothing
 end
 
