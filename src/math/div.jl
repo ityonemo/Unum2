@@ -2,20 +2,68 @@
 #impmements the following:
 #  / Operator overloading.
 #  PBound division.
-#  Call decision for algorithmic multiplication vs. algorithmic division.
-#  Multiplication algorithms.
-#  Multiplication table generation.
+#  Division algorithms.
+#  Division table generation.
 
 import Base./
-/{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = div(x, y, Val{:auto})
-/{lattice, epochbits}(x::PTile{lattice, epochbits}) = multiplicativeinverse(x)
 
-function div{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  mul(x, /(y), OT)
+################################################################################
+# OPERATOR OVERLOADING
+################################################################################
+
+@pfunction function /(lhs::PBound, rhs::PBound)
+  #encapuslates calling the more efficient "add" function, which does not need
+  #to allocate memory.
+  res::B = copy(rhs)
+  multiplicativeinverse!(res)
+  add!(res, lhs)
+  res
 end
 
-@generated function exact_arithmetic_division{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+@pfunction function /(x::PBound)
+  res::B = copy(x)
+  multiplicativeinverse!(res)
+  res
+end
 
+#we allow the (-) operator for PTiles because there is no memory overhead.
+@pfunction function /(x::PTile)
+  multiplicativeinverse(x)
+end
+
+################################################################################
+# PBOUND DIVISION
+################################################################################
+
+doc"""
+  `Unum2.div!(res::PBound, lhs::PBound, rhs::PBound)`  Takes two input values,
+  lhs and rhs and divides rhs from lhs into the memory slot allocated by res.
+"""
+
+@pfunction function div!(res::PBound, lhs::PBound, rhs::PBound)
+  copy!(res, rhs)
+  multiplicativeinverse!(res)
+  mul!(res, rhs)
+  nothing
+end
+
+
+################################################################################
+# ALGORITHMIC DIVISION
+################################################################################
+
+function exact_algorithmic_division{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  dc_lhs = decompose(lhs)
+  dc_rhs = decompose(rhs)
+
+  (invert, dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_division_decomposed(dc_lhs, dc_rhs, Val{lattice}, OT)
+
+  #reconstitute the result.
+  x = synthesize(PTile{lattice, epochbits}, dc_lhs)
+  invert ? multiplicativeinverse(x) : x
+end
+
+@generated function algorithmic_division_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}} )
   #note that parameters passed to this function will always be pointing in the
   #same direction (out or in) relative to one.
   div_table = table_name(lattice, :div)
@@ -27,63 +75,37 @@ end
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
-    is_inf(x) && return inf(PTile{lattice, epochbits})
-    is_inf(y) && return zero(PTile{lattice, epochbits})
-    is_zero(x) && return zero(PTile{lattice, epochbits})
-    is_zero(y) && return inf(PTile{lattice, epochbits})
-    is_one(x) && return /(y)
-    is_one(y) && return x
-    is_neg_one(x) && return -(/(y))
-    is_neg_one(y) && return -x
+    res_epoch = lhs.epoch - rhs.epoch
 
-    (x_negative, x_inverted, x_epoch, x_value) = decompose(x)
-    (y_negative, y_inverted, y_epoch, y_value) = decompose(y)
-
-    res_epoch = x_epoch - y_epoch
-
-    if x_value == z64
-      res_value = $inv_table[y_value >> 1]
+    if lhs.lvalue == z64
+      res_lvalue = $inv_table[lhs.lvalue >> 1]
       res_epoch -= 1
-    elseif y_value == z64
-      res_value = x_value
+    elseif rhs.lvalue == z64
+      res_lvalue = lhs.lvalue
     else
       #do a lookup.
-      res_value = $div_table[x_value >> 1, y_value >> 1]
+      res_lvalue = $div_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
       #check to see if we need to go to a lower epoch.
-      (res_value > x_value) && (res_epoch -= 1)
+      (res_lvalue > lhs.lvalue) && (res_epoch -= 1)
     end
 
-    res_sign = x_negative $ y_negative
-
-    res_inverted = x_inverted
+    res_inverted = false
     #may need to reverse the orientation on the result.
     if (res_epoch < 0)
-      res_inverted = !x_inverted
+      res_inverted = true
       res_epoch = (-res_epoch) - 1
-
-      if (OT == __BOUND) || (OT == __AUTO)
-        (_l_res, _u_res) = invertresult(res_value, Val{lattice}, OT)
-      else
-        res_value = invertresult(res_value, Val{lattice}, OT)
-      end
-    elseif (OT == __BOUND) || (OT == __AUTO)
-      _l_res = res_value
-      _u_res = res_value
+      #invert the value.
+      res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
     end
 
-    if (OT == __BOUND) || (OT == __AUTO)
-      PBound{lattice, epochbits}(synthesize(PTile{lattice, epochbits}, res_sign, res_inverted, res_epoch, _l_res),
-      synthesize(PTile{lattice, epochbits}, res_sign, res_inverted, res_epoch, _u_res))
-    else
-      synthesize(PTile{lattice, epochbits}, res_sign, res_inverted, res_epoch, res_value)
-    end
+    (res_inverted, res_epoch, res_lvalue)
   end
 end
 
 #I didn't want this to be a generated function, but it was the cleanest way to
 #generate and use the new symbol.
 @generated function create_division_table{lattice}(::Type{Val{lattice}})
-  div_table = Symbol("__$(lattice)_div_table")
+  div_table = table_name(lattice, :div)
   quote
     #store the lattice values and the pivot values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]

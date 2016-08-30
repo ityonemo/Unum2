@@ -28,32 +28,42 @@ end
 doc"""
   `Unum2.mul!(res::PBound, lhs::PBound, rhs::PBound)`  Takes two input values,
   lhs and rhs and multiplies them together into the memory slot allocated by res.
+
+  `Unum2.mul!(acc::PBound, rhs::PBound)`  Takes two input values,
+  acc and rhs and multiplies them together into the memory slot allocated by acc.
 """
+
 @pfunction function mul!(res::PBound, lhs::PBound, rhs::PBound)
+  copy!(res, lhs)
+  add!(res, rhs)
+end
+
+
+@pfunction function mul!(acc::PBound, rhs::PBound)
   #terminate early on special values.
-  (isempty(lhs) || isempty(rhs)) && (set_empty!(res); return)
-  (ispreals(lhs) || ispreals(rhs)) && (set_preals!(res); return)
+  (isempty(lhs) || isempty(rhs)) && (set_empty!(lhs); return)
+  (ispreals(lhs) || ispreals(rhs)) && (set_preals!(lhs); return)
 
   set_double!(res)
 
   #to make calculations simple, ensure that the upper is equal to the lower.
-  issingle(lhs) && (single_mul!(res, lhs, rhs); return)
-  issingle(rhs) && (single_mul!(res, rhs, lhs); return)
+  issingle(lhs) && (single_mul!(lhs, rhs); return)
+  issingle(rhs) && (single_mul!(rhs, lhs); return)
 
-  roundsinf(lhs) && (inf_mul!(res, lhs, rhs); return)
-  roundsinf(rhs) && (inf_mul!(res, rhs, lhs); return)
+  roundsinf(lhs) && (inf_mul!(lhs, rhs); return)
+  roundsinf(rhs) && (inf_mul!(rhs, lhs); return)
 
-  roundszero(lhs) && (zero_mul!(res, lhs, rhs); return)
-  roundszero(rhs) && (zero_mul!(res, rhs, lhs); return)
+  roundszero(lhs) && (zero_mul!(lhs, rhs); return)
+  roundszero(rhs) && (zero_mul!(rhs, lhs); return)
 
-  std_mul!(res, lhs, rhs)
+  std_mul!(lhs, rhs)
 end
 
 doc"""
-  Unum2.std_mul!(res::PBound, lhs::PBound, rhs::PBound)
+  Unum2.std_mul!(lhs::PBound, rhs::PBound)
 
   performs a standard multiplication on two PBounds which are well-behaved (don't
-  cross zero or infinity).  Result is stored in "res" variable.
+  cross zero or infinity).  Result is stored in "lhs" variable.
 """
 @pfunction function std_mul!(res::PBound, lhs::PBound, rhs::PBound)
   flip_sign = false
@@ -61,14 +71,14 @@ doc"""
   (rhs_lower, rhs_upper) = isnegative(rhs) ? (flip_sign $= true; (rhs.upper, rhs.lower)) : (rhs.lower, rhs.upper)
 
   if flip_sign
-    res.lower = -sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
-    res.upper = -sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
+    lhs.lower = -sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
+    lhs.upper = -sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
   else
-    res.lower = sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
-    res.upper = sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
+    lhs.lower = sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
+    lhs.upper = sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
   end
 
-  (res.lower == res.upper) && set_single!(res)
+  (lhs.lower == lhs.upper) && set_single!(lhs)
 end
 
 
@@ -95,7 +105,7 @@ function sided_abs_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits},
   end
 end
 
-function checked_exact_mul(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function checked_exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   is_inf(lhs) && return inf(PTile{lattice, epochbits})
   is_inf(rhs) && return inf(PTile{lattice, epochbits})
   is_zero(lhs) && return zero(PTile{lattice, epochbits})
@@ -108,9 +118,9 @@ end
 
 function exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isinverted(lhs) $ isinverted(rhs))
-    exact_arithmetic_division(lhs, multiplicativeinverse(rhs), OT)
+    exact_algorithmic_division(lhs, multiplicativeinverse(rhs), OT)
   else
-    exact_arithmetic_multiplication(lhs, rhs, OT)
+    exact_algorithmic_multiplication(lhs, rhs, OT)
   end
 end
 
@@ -130,14 +140,14 @@ function exact_algorithmic_multiplication{lattice, epochbits, output}(lhs::PTile
   dc_lhs = decompose(lhs)
   dc_rhs = decompose(rhs)
 
-  (dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_multiplication_decomposed(dc_lhs, dc_rhs, OT)
+  (dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_multiplication_decomposed(dc_lhs, dc_rhs, Val{lattice}, OT)
 
   #reconstitute the result.
   synthesize(PTile{lattice, epochbits}, dc_lhs)
 end
 
 
-@generated function algorithmic_multiplication_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, OT::Type{Val{output}} )
+@generated function algorithmic_multiplication_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
   mul_table = table_name(lattice, :mul)
   m_epoch = max_epoch(epochbits)
 
