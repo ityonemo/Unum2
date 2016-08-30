@@ -1,131 +1,169 @@
-#Unum2 multiplication.
+#mul.jl -- Unum2 multiplication.
+#impmements the following:
+#  * Operator overloading.
+#  PBound multiplication.
+#  Call decision for algorithmic multiplication vs. algorithmic division.
+#  Multiplication algorithms.
+#  Multiplication table generation.
 
 import Base.*
-*{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = mul(x, y, Val{:auto})
 
-function noisy_R{output}(P::Type, ::Type{Val{output}})
-  if (output == :auto) || (output == :bound)
-    return allprojectivereals(P)
+################################################################################
+# OPERATOR OVERLOADING
+################################################################################
+
+@pfunction function *(lhs::PBound, rhs::PBound)
+  #encapuslates calling the more efficient "add" function, which does not need
+  #to allocate memory.
+
+  res::B = emptyset(B)
+  mul!(res, lhs, rhs)
+  res
+end
+
+################################################################################
+# PBOUND MULTIPLICATION
+################################################################################
+
+doc"""
+  `Unum2.mul!(res::PBound, lhs::PBound, rhs::PBound)`  Takes two input values,
+  lhs and rhs and multiplies them together into the memory slot allocated by res.
+"""
+@pfunction function mul!(res::PBound, lhs::PBound, rhs::PBound)
+  #terminate early on special values.
+  (isempty(lhs) || isempty(rhs)) && (set_empty!(res); return)
+  (ispreals(lhs) || ispreals(rhs)) && (set_preals!(res); return)
+
+  set_double!(res)
+
+  #to make calculations simple, ensure that the upper is equal to the lower.
+  issingle(lhs) && (single_mul!(res, lhs, rhs); return)
+  issingle(rhs) && (single_mul!(res, rhs, lhs); return)
+
+  roundsinf(lhs) && (inf_mul!(res, lhs, rhs); return)
+  roundsinf(rhs) && (inf_mul!(res, rhs, lhs); return)
+
+  roundszero(lhs) && (zero_mul!(res, lhs, rhs); return)
+  roundszero(rhs) && (zero_mul!(res, rhs, lhs); return)
+
+  std_mul!(res, lhs, rhs)
+end
+
+doc"""
+  Unum2.std_mul!(res::PBound, lhs::PBound, rhs::PBound)
+
+  performs a standard multiplication on two PBounds which are well-behaved (don't
+  cross zero or infinity).  Result is stored in "res" variable.
+"""
+@pfunction function std_mul!(res::PBound, lhs::PBound, rhs::PBound)
+  flip_sign = false
+  (lhs_lower, lhs_upper) = isnegative(lhs) ? (flip_sign = true; (lhs.upper, lhs.lower)) : (lhs.lower, lhs.upper)
+  (rhs_lower, rhs_upper) = isnegative(rhs) ? (flip_sign $= true; (rhs.upper, rhs.lower)) : (rhs.lower, rhs.upper)
+
+  if flip_sign
+    res.lower = -sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
+    res.upper = -sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
   else
-    throw(ArgumentError("output type doesn't support all real values"))
-    return zero(P)  #to keep homoiconicity.
+    res.lower = sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
+    res.upper = sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
+  end
+
+  (res.lower == res.upper) && set_single!(res)
+end
+
+
+################################################################################
+# PTILE MULTIPLICATION
+################################################################################
+
+doc"""
+  Unum2.sided_abs_mul(x::PTile, y::PTile, ::Type{Val{output}})
+
+  perform a mul on one side or the other, returning the appropriate tile value.
+  the absolute value of the multiply is calculated; it's the responsibility of
+  the caller to figure out parity.
+"""
+function sided_abs_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  #don't do infinity or zero checks. This should be handled outside the sided mul call.
+  is_unit(lhs) && return abs(rhs)
+  is_unit(rhs) && return abs(lhs)
+
+  if isexact(lhs) & isexact(rhs)
+    exact_mul(abs(lhs), abs(rhs), OT)
+  else
+    inexact_mul(abs(lhs), abs(rhs), OT)
   end
 end
 
-function mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  is_inf(x) && return (is_zero(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PTile{lattice, epochbits}), OT))
-  is_inf(y) && return (is_zero(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PTile{lattice, epochbits}), OT))
-  is_zero(x) && return (is_inf(y) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PTile{lattice, epochbits}), OT))
-  is_zero(y) && return (is_inf(x) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(zero(PTile{lattice, epochbits}), OT))
-  is_one(x) && return coerce(y, OT)
-  is_one(y) && return coerce(x, OT)
-  is_neg_one(x) && return coerce(-y, OT)
-  is_neg_one(y) && return coerce(-x, OT)
+function checked_exact_mul(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  is_inf(lhs) && return inf(PTile{lattice, epochbits})
+  is_inf(rhs) && return inf(PTile{lattice, epochbits})
+  is_zero(lhs) && return zero(PTile{lattice, epochbits})
+  is_zero(rhs) && return zero(PTile{lattice, epochbits})
+  is_one(rhs) && return lhs
+  is_one(lhs) && return rhs
 
-  if isexact(x) & isexact(y)
-    exact_mul(x, y, OT)
+  exact_mul(lhs, rhs, OT)
+end
+
+function exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  if (isinverted(lhs) $ isinverted(rhs))
+    exact_arithmetic_division(lhs, multiplicativeinverse(rhs), OT)
   else
-    inexact_mul(x, y, OT)
+    exact_arithmetic_multiplication(lhs, rhs, OT)
   end
 end
 
-
-function exact_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  if (isinverted(x) $ isinverted(y))
-    exact_arithmetic_division(x, multiplicativeinverse(y), OT)
-  else
-    exact_arithmetic_multiplication(x, y, OT)
-  end
-end
-
-function __resultparity{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits})
-  return (((@i x) $ (@i y)) & SIGN_MASK) == 0
-end
-
-@generated function inexact_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+@generated function inexact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
-    quote
-      #recast this as "inner/outer" versions
-      #println(__resultparity(x,y))
-
-      upperulp(__resultparity(x,y) ? inexact_mul(x, y, __INNER) : inexact_mul(x, y, __OUTER))
-    end
-  elseif output == :upper
-    quote
-      #recast this as "inner/outer" versions
-      lowerulp(__resultparity(x,y) ? inexact_mul(x, y, __OUTER) : inexact_mul(x, y, __INNER))
-    end
-  elseif output == :inner
-    quote
-      _inner_x = ispositive(x) ? glb(x) : lub(x)
-      _inner_y = ispositive(y) ? glb(y) : lub(y)
-
-      res = exact_mul(_inner_x, _inner_y, OT)
-      #println(res)
-      res
-    end
-  elseif output == :outer
-    quote
-      _outer_x = ispositive(x) ? lub(x) : glb(x)
-      _outer_y = ispositive(y) ? lub(y) : glb(y)
-
-      exact_mul(_outer_x, _outer_y, OT)
-    end
-  else
-    quote
-      _l = inexact_mul(x, y, Val{:lower})
-      _u = inexact_mul(x, y, Val{:upper})
-
-      (output == :bound) ? PBound{lattice, epochbits}(_l, _u) : _auto(_l, _u)
-    end
+    :(lub(checked_exact_mul(glb(abs(lhs)), glb(abs(rhs)), OT)))
+  else #output == :upper
+    :(lub(checked_exact_mul(lub(abs(lhs)), lub(abs(rhs)), OT)))
   end
 end
 
+################################################################################
+# ALGORITHMIC MULTIPLICATION
+################################################################################
 
-@generated function exact_arithmetic_multiplication{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}} )
+function exact_algorithmic_multiplication{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}} )
+  dc_lhs = decompose(lhs)
+  dc_rhs = decompose(rhs)
+
+  (dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_multiplication_decomposed(dc_lhs, dc_rhs, OT)
+
+  #reconstitute the result.
+  synthesize(PTile{lattice, epochbits}, dc_lhs)
+end
+
+
+@generated function algorithmic_multiplication_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, OT::Type{Val{output}} )
   mul_table = table_name(lattice, :mul)
   m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
   isdefined(Unum2, mul_table) || create_multiplication_table(Val{lattice})
-
   quote
-    is_inf(x) &&     return coerce(inf(PTile{lattice, epochbits}), OT)
-    is_inf(y) &&     return coerce(inf(PTile{lattice, epochbits}), OT)
-    is_zero(x) &&    return coerce(zero(PTile{lattice, epochbits}), OT)
-    is_zero(y) &&    return coerce(zero(PTile{lattice, epochbits}), OT)
-    is_one(x) &&     return coerce(y                               , OT)
-    is_one(y) &&     return coerce(x                               , OT)
-    is_neg_one(x) && return coerce(-y                              , OT)
-    is_neg_one(y) && return coerce(-x                              , OT)
+    res_epoch = lhs.epoch + rhs.epoch
 
-    x_negative = y_negative = x_inverted = y_inverted= false
-    x_epoch = y_epoch = x_value = y_value = z64
-
-    (x_negative, x_inverted, x_epoch, x_value) = decompose(x)
-    (y_negative, y_inverted, y_epoch, y_value) = decompose(y)
-
-    res_epoch = x_epoch + y_epoch
-
-    if x_value == z64
-      res_value = y_value
-    elseif y_value == z64
-      res_value = x_value
+    if lhs.lvalue == z64
+      res_lvalue = rhs.lvalue
+    elseif rhs.lvalue == z64
+      res_lvalue = lhs.lvalue
     else
       #do a lookup.
-      res_value = $mul_table[x_value >> 1, y_value >> 1]
+      res_lvalue = $mul_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
       #check to see if we need to go to a higher epoch.
-      (res_value < x_value) && (res_epoch += 1)
+      (res_lvalue < lhs.lvalue) && (res_epoch += 1)
     end
 
-    res_sign = x_negative $ y_negative
-
-    #check to see if we overflow to extremum.
-    ((res_epoch) > $m_epoch) && return coerce(extremum(PTile{lattice, epochbits}, res_sign, x_inverted), OT)
-
-    coerce(synthesize(PTile{lattice, epochbits}, res_sign, x_inverted, res_epoch, res_value), OT)
+    (res_epoch, res_value)
   end
 end
+
+################################################################################
+# MULTIPLICATION TABLES
+################################################################################
 
 #I didn't want this to be a generated function, but it was the cleanest way to
 #generate and use the new sybol.

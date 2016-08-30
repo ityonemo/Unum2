@@ -19,6 +19,7 @@ is_zero(x::PTile) = @i(x) == PTILE_ZERO
 is_inf(x::PTile) = @i(x) == PTILE_INF
 is_one(x::PTile) = @i(x) == PTILE_ONE
 is_neg_one(x::PTile) = @i(x) == PTILE_NEG_ONE
+is_unit(x::PTile) = (@i(x) & MAG_MASK) == PTILE_ONE
 
 ################################################################################
 # infinite and infinitesimal ulps

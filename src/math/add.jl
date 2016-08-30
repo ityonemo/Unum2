@@ -63,8 +63,6 @@ end
     (next(acc.upper) == acc.lower) && (set_preals!(acc); return)
   end
 
-  println("hi, res: $(bits(reinterpret(UInt64,acc.lower)))  -> $(bits(reinterpret(UInt64,acc.upper))) $(acc.lower == acc.upper)")
-
   (acc.upper == acc.lower) && set_single!(acc)
 
   nothing
@@ -107,7 +105,6 @@ function checked_exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epoch
   exact_add(lhs, rhs, OT)
 end
 
-
 function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(lhs) $ isnegative(rhs))
     exact_algorithmic_subtraction(lhs, -rhs, OT)
@@ -115,7 +112,6 @@ function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, r
     exact_algorithmic_addition(lhs, rhs, OT)
   end
 end
-
 
 @generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower

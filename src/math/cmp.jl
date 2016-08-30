@@ -42,3 +42,7 @@ end
     false
   end
 end
+
+@pfunction function Base.abs(x::PTile)
+  @p((@i x) & MAG_MASK)
+end

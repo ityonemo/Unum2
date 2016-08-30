@@ -1,4 +1,10 @@
-#Unum2 multiplication.
+#div.jl -- Unum2 division.
+#impmements the following:
+#  / Operator overloading.
+#  PBound division.
+#  Call decision for algorithmic multiplication vs. algorithmic division.
+#  Multiplication algorithms.
+#  Multiplication table generation.
 
 import Base./
 /{lattice, epochbits}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}) = div(x, y, Val{:auto})

@@ -29,7 +29,7 @@ btadd = [
 #0.5 + ...                                                                                           |
   ▾(looo)  lool → loll  ▾(loll)      loll → llol  ▾(lllo)      ▾(llll)      ▾(oooo)      ▾(oool)      ▾(oolo)  ▾(ooll)      ▾(oloo)      ▾(olol)      ▾(olol)      olol → olll  ▾(olll)     ▾(olll);
 #(0.5 1) + ...                                                                                       |
-  ▾(looo)  lool → loll  ▾(loll)      loll → llll  ▾(llll)      llll → oool  ▾(oool)      oool → ooll  ▾(ooll)  ooll → olol  ▾(olol)      ▾(olol)      olol → olll  olol → olll  ▾(olll)     ▾(olll);
+  ▾(looo)  lool → loll  ▾(loll)      loll → llll  ▾(llll)      llll → oool  ▾(oool)      oool → ooll  ▾(ooll)  ooll → olol  ▾(olol)      ▾(olol)      ▾(olol)      olol → olll  ▾(olll)     ▾(olll);
 #1 + ...                                                                                             |
   ▾(looo)  lool → loll  ▾(lloo)      llol → llll  ▾(oooo)      ▾(oool)      ▾(oolo)      ▾(ooll)      ▾(oloo)  ▾(olol)      ▾(olol)      ▾(olol)      ▾(ollo)      ▾(olll)      ▾(olll)     ▾(olll);
 #(1 2) + ...                                                                                         |

@@ -9,11 +9,8 @@ include("4bittest.jl")
 #=
 import_lattice(:PFloat4)
 
+x = ▾(pos_many(PTile4))
+y = ▾(pos_many(PTile4))
 
-#println(PTile4(2.0))
-#println(PTile4(1.0))
-println(PTile4(-2.0))
-println(PTile4(-0.5))
-println(PTile4(0.5))
-println(PTile4(2.0))
+println(x + y)
 =#

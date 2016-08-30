@@ -38,7 +38,7 @@ import Base: ==
   quote
     #set the value of the result, taking into acount that if we overflow on the
     #epoch, we should return an extreme value
-    res::ST_Int = (v.epoch > $m_epoch) ? CON_MASK : @s(((v.epoch << $eshift) | (v.lvalue))  << $tshift)
+    res::ST_Int = (v.epoch > $m_epoch) ? (@s pos_many(PTile{lattice, epochbits})) : @s(((v.epoch << $eshift) | (v.lvalue))  << $tshift)
     res |= @s(PTILE_ONE)
     res *= flag_parity(v) ? -one(ST_Int) : one(ST_Int)
     res = (res & @s(MAG_MASK)) | @s(is_negative(v) ? PTILE_INF : PTILE_ZERO)

@@ -7,7 +7,6 @@
 
 import Base.-
 
-
 ################################################################################
 # OPERATOR OVERLOADING
 ################################################################################
@@ -15,15 +14,14 @@ import Base.-
 @pfunction function -(lhs::PBound, rhs::PBound)
   #encapuslates calling the more efficient "add" function, which does not need
   #to allocate memory.
-
   res::B = copy(rhs)
   additiveinverse!(res)
   add!(res, lhs)
   res
 end
 
-@pfunction function -(lhs::PBound, rhs::PBound)
-  res::B = copy(rhs)
+@pfunction function -(x::PBound)
+  res::B = copy(x)
   additiveinverse!(res)
   res
 end

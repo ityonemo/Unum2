@@ -1,39 +1,8 @@
 
--{lattice, epochbits}(lhs::PBound{lattice, epochbits}) = issingle(lhs) ? PBound{lattice,epochbits}(-lhs.lower, lhs.upper, lhs.state) : PBound{lattice,epochbits}(-lhs.upper, -lhs.lower, lhs.state)
-@pfunction function -(lhs::PBound, rhs::PBound)
-  res = emptyset(B)
-  sub!(res, lhs, rhs)
-  return res
-end
-
-@pfunction function sub!(dest::PBound, lhs::PBound, rhs::PBound)
-  #for now, eventually, we will make this use a temporary variable.
-  add!(dest, lhs, -rhs)
-end
 
 *{lattice, epochbits}(lhs::PBound{lattice, epochbits}, rhs::PBound{lattice, epochbits}) = mul(lhs,rhs)
 @pfunction function mul(lhs::PBound, rhs::PBound)
-  (isempty(lhs) || isempty(rhs)) && return emptyset(B)
-  (ispreals(lhs) || ispreals(rhs)) && return allprojectivereals(B)
 
-  #to make calculations simple, ensure that the upper is equal to the lower.
-  issingle(lhs) && return single_mul(lhs, rhs)
-  issingle(rhs) && return single_mul(rhs, lhs)
-
-  roundsinf(lhs) && return inf_mul(lhs, rhs)
-  roundsinf(rhs) && return inf_mul(rhs, lhs)
-
-  roundszero(lhs) && return zero_mul(lhs, rhs)
-  roundszero(rhs) && return zero_mul(rhs, lhs)
-
-  #now we know the resulting value must be standard intervals across either positive
-  #or negative parts of the number line.
-  flip_sign = false
-  x_val = isnegative(lhs) ? (flip_sign = true; -lhs) : lhs
-  y_val = isnegative(rhs) ? (flip_sign $= true; -rhs) : rhs
-
-  flip_sign && return B(-mul(x_val.upper, y_val.upper, __UPPER), -mul(x_val.lower, y_val.lower, __LOWER))
-  return B(mul(x_val.lower, y_val.lower, __LOWER), mul(x_val.upper, y_val.upper, __UPPER))
 end
 
 #do a multiplication where we know lhs is a singleton bound.
