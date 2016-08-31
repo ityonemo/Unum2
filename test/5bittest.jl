@@ -1,5 +1,5 @@
 
-import_lattice(:PTile5)
+import_lattice(:PFloat5)
 
 include("5bittest/5btdefs.jl")
 include("5bittest/5bt-test-add.jl")

@@ -32,31 +32,195 @@ doc"""
   `Unum2.mul!(acc::PBound, rhs::PBound)`  Takes two input values,
   acc and rhs and multiplies them together into the memory slot allocated by acc.
 """
-
 @pfunction function mul!(res::PBound, lhs::PBound, rhs::PBound)
   copy!(res, lhs)
-  add!(res, rhs)
+  mul!(res, rhs)
 end
-
 
 @pfunction function mul!(acc::PBound, rhs::PBound)
   #terminate early on special values.
-  (isempty(lhs) || isempty(rhs)) && (set_empty!(lhs); return)
-  (ispreals(lhs) || ispreals(rhs)) && (set_preals!(lhs); return)
-
-  set_double!(res)
+  (isempty(acc) || isempty(rhs)) && (set_empty!(acc); return)
+  (ispreals(acc) || ispreals(rhs)) && (set_preals!(acc); return)
 
   #to make calculations simple, ensure that the upper is equal to the lower.
-  issingle(lhs) && (single_mul!(lhs, rhs); return)
-  issingle(rhs) && (single_mul!(rhs, lhs); return)
+  if issingle(acc)
+    single_mul!(acc, acc, rhs)
+  elseif issingle(rhs)
+    single_mul!(acc, rhs, acc)
+  elseif containsinf(acc)
+    inf_mul!(acc, acc, rhs)
+  elseif containsinf(rhs)
+    inf_mul!(acc, rhs, acc)
+  elseif __simple_roundszero(acc)
+    zero_mul!(acc, acc, rhs)
+  elseif __simple_roundszero(rhs)
+    zero_mul!(acc, rhs, acc)
+  else
+    std_mul!(acc, rhs)
+  end
 
-  roundsinf(lhs) && (inf_mul!(lhs, rhs); return)
-  roundsinf(rhs) && (inf_mul!(rhs, lhs); return)
+  acc
+end
 
-  roundszero(lhs) && (zero_mul!(lhs, rhs); return)
-  roundszero(rhs) && (zero_mul!(rhs, lhs); return)
 
-  std_mul!(lhs, rhs)
+doc"""
+  Unum2.single_mul!(acc::PBound, lhs::PBound, rhs::PBound)
+
+  performs a multiplication on two PBounds, placing the result into the acc
+  value.  lhs is guaranteed to be a "single" element.
+"""
+@pfunction function single_mul!(acc::PBound, lhs::PBound, rhs::PBound)  #do a few critical single checks.
+  #first check if rhs is SINGLETON.
+  if issingle(rhs)
+    if is_zero(lhs.lower)
+      is_inf(rhs.lower) && (set_preals!(acc); return)
+      (acc.lower = zero(T); set_single!(acc); return)
+    end
+
+    if is_zero(rhs.lower)
+      is_inf(lhs.lower) && (set_preals!(acc); return)
+      (acc.lower = zero(T); set_single!(acc); return)
+    end
+
+    is_inf(lhs.lower) && (acc.lower = inf(T); set_single!(acc); return)
+    is_inf(rhs.lower) && (acc.lower = inf(T); set_single!(acc); return)
+    is_zero(lhs.lower) && (acc.lower = zero(T); set_single!(acc); return)
+    is_zero(rhs.lower) && (acc.lower = zero(T); set_single!(acc); return)
+
+    set_double!(acc)
+
+    flip_sign = isnegative(lhs) $ isnegative(rhs)
+    acc.upper = sided_abs_mul(lhs.lower, rhs.lower, __UPPER)
+    acc.lower = sided_abs_mul(lhs.lower, rhs.lower, __LOWER)
+    flip_sign && additiveinverse!(acc)
+
+    (acc.lower == acc.upper) ? set_single!(acc) : set_double!(acc)
+  else
+    if (is_zero(lhs.lower) && containsinf(rhs)) || (is_inf(lhs.lower) && containszero(rhs))
+      set_preals!(acc)
+      return
+    end
+    acc.lower = mul(lhs.lower, rhs.lower, __LOWER)
+    acc.upper = mul(lhs.lower, rhs.upper, __UPPER)
+
+    (acc.lower == acc.upper) ? set_single!(acc) : set_double!(acc)
+  end
+end
+
+doc"""
+  Unum2.inf_mul!(acc::PBound, lhs::PBound, rhs::PBound)
+
+  performs a multiplication on two PBounds, placing the result into the acc
+  value.  lhs is guaranteed to be a "double" element that "containsinf", which
+  according to our definition, either has infnity as the upper or lower element,
+  or has its upper element less than its lower element (going 'round the horn'
+  on the projective reals).
+"""
+@pfunction function inf_mul!(acc::PBound, lhs::PBound, rhs::PBound)  #do a few critical single checks.
+  if containszero(rhs)
+    #check to see if the rhs contains zero in any way, which will trigger the
+    #result to be all projective reals.
+    set_preals!(acc)
+
+  elseif containszero(lhs)
+    #it's possible for the value to round both infinity AND zero.
+
+    #check if we have an infinite-valued rhs, which triggers preals.
+    containsinf(rhs) && (set_preals!(acc); return)
+
+    #at this juncture, the value lhs must round both zero and infinity, and
+    #the value rhs must be a standard, nonflipped double interval that is only on
+    #one side of zero.
+
+    # (100, 1) * (3, 4)     -> (300, 4)    (l * l, u * u)
+    # (100, 1) * (-4, -3)   -> (-4, -300)  (u * l, l * u)
+    # (-1, -100) * (3, 4)   -> (-4, -300)  (l * u, u * l)
+    # (-1, -100) * (-4, -3) -> (300, 4)    (u * u, l * l)
+
+    _state = isnegative(lhs) * 1 + isnegative(rhs) * 2
+
+    #assign upper and lower values based on the bounds
+    if (_state == 0)
+      _l = mul(lhs.lower, rhs.lower, __LOWER)
+      _u = mul(lhs.upper, rhs.upper, __UPPER)
+    elseif (_state == 1)
+      _l = mul(lhs.upper, rhs.lower, __LOWER)
+      _u = mul(lhs.lower, rhs.upper, __UPPER)
+    elseif (_state == 2)
+      _l = mul(lhs.upper, rhs.lower, __LOWER)
+      _u = mul(lhs.lower, rhs.upper, __UPPER)
+    else   #state == 3
+      _l = mul(lhs.upper, rhs.upper, __LOWER)
+      _u = mul(lhs.lower, rhs.lower, __UPPER)
+    end
+
+    #check two cases: if the result has "flipped around" and now need to be
+    #represented by all reals.
+    (@s _l) <= (@s _u) && (set_preals!(acc); return)
+    (next(_u) == _l) && (set_preals!(acc); return)
+
+    acc.lower = _l
+    acc.upper = _u
+  elseif containsinf(rhs)  #now we must check if rhs rounds infinity.
+    #like the double "rounds zero" case, we have to check four possible endpoints.
+    _l1 = is_inf(lhs.lower) | is_inf(rhs.lower) ? inf(T) : mul(lhs.lower, rhs.lower, __LOWER)
+    _l2 = is_inf(lhs.upper) | is_inf(rhs.upper) ? inf(T) : mul(lhs.upper, rhs.upper, __LOWER)
+    _u1 = is_inf(lhs.lower) | is_inf(rhs.upper) ? inf(T) : mul(lhs.lower, rhs.upper, __UPPER)
+    _u2 = is_inf(lhs.upper) | is_inf(rhs.lower) ? inf(T) : mul(lhs.upper, rhs.lower, __UPPER)
+
+    #construct the result.
+    acc.lower = min(_l1, _l2)
+    acc.upper = max(_l1, _l2)
+  else  #the last case is if lhs rounds infinity but rhs is a "well-behaved" value.
+    #canonical example:
+    # (2, -3) * (5, 7) -> (10, -15)
+    # (2, -3) * (-7, -5) -> (15, -10)
+
+    if isnegative(rhs)
+      _l = is_inf(lhs.upper) | is_inf(rhs.upper) ? inf(T) : mul(lhs.upper, rhs.upper, __LOWER)
+      _u = is_inf(lhs.lower) | is_inf(rhs.lower) ? inf(T) : mul(lhs.lower, rhs.upper, __UPPER)
+
+      acc.lower = _l
+      acc.upper = _u
+    else
+      acc.lower = is_inf(lhs.lower) | is_inf(rhs.lower) ? inf(T) : mul(lhs.lower, rhs.lower, __LOWER)
+      acc.upper = is_inf(lhs.upper) | is_inf(rhs.upper) ? inf(T) : mul(lhs.upper, rhs.lower, __UPPER)
+    end
+  end
+end
+
+
+#a quick accessory function that tests if a bound (that is known to not round infinity)
+# rounds zero.
+__simple_roundszero(x::PBound) = isnegative(x.lower) && ispositive(x.upper)
+
+doc"""
+  Unum2.zero_mul!(acc::PBound, lhs::PBound, rhs::PBound)
+
+  performs a multiplication on two PBounds, placing the result into the acc
+  value.  lhs is guaranteed to be a "double" element that "containsinf", which
+  according to our definition, either has infnity as the upper or lower element,
+  or has its upper element less than its lower element (going 'round the horn'
+  on the projective reals).
+"""
+@pfunction function zero_mul!(acc::PBound, lhs::PBound, rhs::PBound)
+  if __simple_roundszero(rhs)
+    # when rhs spans zero, we have to check four possible endpoints.
+    _l = min(mul(lhs.lower, rhs.upper, __LOWER), mul(lhs.upper, rhs.lower, __LOWER))
+    _u = max(mul(lhs.lower, rhs.lower, __UPPER), mul(lhs.upper, rhs.upper, __UPPER))
+
+    # in the case where the rhs doesn't span zero, we must only multiply by the
+    # extremum.
+  elseif ispositive(rhs.lower)
+    _l = mul(lhs.lower, rhs.upper, __LOWER)
+    _u = mul(lhs.upper, rhs.upper, __UPPER)
+  else #rhs must be negative
+    _l = mul(lhs.upper, rhs.lower, __LOWER)
+    _u = mul(lhs.lower, rhs.lower, __UPPER)
+  end
+
+  acc.lower = _l
+  acc.upper = _u
 end
 
 doc"""
@@ -65,35 +229,62 @@ doc"""
   performs a standard multiplication on two PBounds which are well-behaved (don't
   cross zero or infinity).  Result is stored in "lhs" variable.
 """
-@pfunction function std_mul!(res::PBound, lhs::PBound, rhs::PBound)
+@pfunction function std_mul!(lhs::PBound, rhs::PBound)
   flip_sign = false
   (lhs_lower, lhs_upper) = isnegative(lhs) ? (flip_sign = true; (lhs.upper, lhs.lower)) : (lhs.lower, lhs.upper)
   (rhs_lower, rhs_upper) = isnegative(rhs) ? (flip_sign $= true; (rhs.upper, rhs.lower)) : (rhs.lower, rhs.upper)
 
   if flip_sign
-    lhs.lower = -sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
-    lhs.upper = -sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
+    lhs.lower = -zero_check_sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
+    lhs.upper = -zero_check_sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
   else
-    lhs.lower = sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
-    lhs.upper = sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
+    lhs.lower = zero_check_sided_abs_mul(lhs_lower, rhs_lower, __LOWER)
+    lhs.upper = zero_check_sided_abs_mul(lhs_upper, rhs_upper, __UPPER)
   end
 
   (lhs.lower == lhs.upper) && set_single!(lhs)
 end
-
 
 ################################################################################
 # PTILE MULTIPLICATION
 ################################################################################
 
 doc"""
+  Unum2.mul(x::PTile, y::PTile, ::Type{Val{output}})
+
+  performs a mul on one side or the other, returning the appropriate tile value.
+"""
+@generated function mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  if (output == :lower)
+    :( (isnegative(lhs) $ isnegative(rhs)) ? additiveinverse(sided_abs_mul(lhs, rhs, Val{:upper})) : sided_abs_mul(lhs, rhs, Val{:lower}) )
+  else
+    :( (isnegative(lhs) $ isnegative(rhs)) ? additiveinverse(sided_abs_mul(lhs, rhs, Val{:lower})) : sided_abs_mul(lhs, rhs, Val{:upper}) )
+  end
+end
+
+doc"""
+  Unum2.zero_check_sided_abs_mul(x::PTile, y::PTile, ::Type{Val{output}})
+
+  perform a mul on one side or the other, returning the appropriate tile value.
+  the absolute value of the multiply is calculated; it's the responsibility of
+  the caller to figure out parity.  This version will correctly multiply zero.
+"""
+function zero_check_sided_abs_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  is_zero(lhs) && return zero(PTile{lattice, epochbits})
+  is_zero(rhs) && return zero(PTile{lattice, epochbits})
+
+  sided_abs_mul(lhs, rhs, OT)
+end
+
+doc"""
   Unum2.sided_abs_mul(x::PTile, y::PTile, ::Type{Val{output}})
 
   perform a mul on one side or the other, returning the appropriate tile value.
   the absolute value of the multiply is calculated; it's the responsibility of
-  the caller to figure out parity.
+  the caller to figure out parity.  This version will fail for inputs of zero or
+  infinity.
 """
-function sided_abs_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function sided_abs_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   #don't do infinity or zero checks. This should be handled outside the sided mul call.
   is_unit(lhs) && return abs(rhs)
   is_unit(rhs) && return abs(lhs)
@@ -105,6 +296,14 @@ function sided_abs_mul{lattice, epochbits, output}(x::PTile{lattice, epochbits},
   end
 end
 
+doc"""
+  Unum2.checked_exact_mul(lhs::PTile, rhs::PTile, ::Type{Val{output}})
+
+  perform an exact multiply on one side or another, but also check for some
+  special values.  This is useful when an inexact mul needs to perform an
+  exact mul using one of the extrema, but allowing for the direct exact mul
+  to not have this overhead.
+"""
 function checked_exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   is_inf(lhs) && return inf(PTile{lattice, epochbits})
   is_inf(rhs) && return inf(PTile{lattice, epochbits})
@@ -116,6 +315,11 @@ function checked_exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epoch
   exact_mul(lhs, rhs, OT)
 end
 
+doc"""
+  Unum2.exact_mul(lhs::PTile, rhs::PTile, ::Type{Val{output}})
+
+  perform an exact multiply, reporting the tile on the far left or far right.
+"""
 function exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isinverted(lhs) $ isinverted(rhs))
     exact_algorithmic_division(lhs, multiplicativeinverse(rhs), OT)
@@ -126,9 +330,9 @@ end
 
 @generated function inexact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
-    :(lub(checked_exact_mul(glb(abs(lhs)), glb(abs(rhs)), OT)))
+    :(upperulp(checked_exact_mul(glb(abs(lhs)), glb(abs(rhs)), OT)))
   else #output == :upper
-    :(lub(checked_exact_mul(lub(abs(lhs)), lub(abs(rhs)), OT)))
+    :(lowerulp(checked_exact_mul(lub(abs(lhs)), lub(abs(rhs)), OT)))
   end
 end
 
@@ -149,16 +353,15 @@ end
 
 @generated function algorithmic_multiplication_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
   mul_table = table_name(lattice, :mul)
-  m_epoch = max_epoch(epochbits)
 
   #create the multiplication table, if necessary.
   isdefined(Unum2, mul_table) || create_multiplication_table(Val{lattice})
   quote
     res_epoch = lhs.epoch + rhs.epoch
 
-    if lhs.lvalue == z64
+    if lhs.lvalue == zero(UT_Int)
       res_lvalue = rhs.lvalue
-    elseif rhs.lvalue == z64
+    elseif rhs.lvalue == zero(UT_Int)
       res_lvalue = lhs.lvalue
     else
       #do a lookup.
@@ -167,7 +370,7 @@ end
       (res_lvalue < lhs.lvalue) && (res_epoch += 1)
     end
 
-    (res_epoch, res_value)
+    (res_epoch, res_lvalue)
   end
 end
 

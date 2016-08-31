@@ -31,11 +31,13 @@ set_single!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOU
 set_double!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOUND_DOUBLE)
 set_preals!{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state = PBOUND_ALLPREALS)
 
-roundsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PBOUND_ALLPREALS) || (x.state == PBOUND_DOUBLE) && (x.upper < x.lower)
-function roundszero{lattice, epochbits}(x::PBound{lattice,epochbits})
+containsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PBOUND_ALLPREALS) || (x.state == PBOUND_DOUBLE) && (x.upper < x.lower)
+function containszero{lattice, epochbits}(x::PBound{lattice,epochbits})
   ((x.state & PBOUND_DOUBLE) == 0) && return false  #traps both allreals and stdbound
-  if roundsinf(x)
-    (ispositive(x.lower) && ispositive(x.upper)) || (isnegative(x.lower) && isnegative(x.upper))
+  (is_zero(x.lower) || is_zero(x.upper)) && return true
+  
+  if containsinf(x)
+    ispositive(x.lower) == ispositive(x.upper)
   else
     isnegative(x.lower) && ispositive(x.upper)
   end

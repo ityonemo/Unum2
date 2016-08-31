@@ -167,11 +167,11 @@ import Unum2: decompose, synthesize, __dc_tile, UT_Int, ST_Int
 
 include("4bittest/mathtestdefs.jl")
 include("4bittest/4bt-test-add.jl")
-#include("4bittest/4bt-test-mul.jl")
+include("4bittest/4bt-test-mul.jl")
 
 #test addition
 testop(+, btadd)
 #test multiplication
-#testop(*, btmul)
+testop(*, btmul)
 
-#include("4bittest/4bt-test-bounds.jl")
+include("4bittest/4bt-test-bounds.jl")

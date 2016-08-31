@@ -110,7 +110,6 @@ end
   sub_inv_table         = table_name(lattice, :sub_inv)
   sub_inv_epoch_table   = table_name(lattice, :sub_inv_epoch)
   isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_table(Val{lattice})
-  m_epoch = max_epoch(epochbits)
   quote
     #for now, only support adding things that are in the same epoch.
     if big.epoch == sml.epoch

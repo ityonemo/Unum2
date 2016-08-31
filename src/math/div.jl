@@ -52,7 +52,7 @@ end
 # ALGORITHMIC DIVISION
 ################################################################################
 
-function exact_algorithmic_division{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function exact_algorithmic_division{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   dc_lhs = decompose(lhs)
   dc_rhs = decompose(rhs)
 
@@ -69,18 +69,16 @@ end
   div_table = table_name(lattice, :div)
   inv_table = table_name(lattice, :inv)
 
-  m_epoch = max_epoch(epochbits)
-
   #create the multiplication table, if necessary.
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
     res_epoch = lhs.epoch - rhs.epoch
 
-    if lhs.lvalue == z64
+    if lhs.lvalue == zero(UT_Int)
       res_lvalue = $inv_table[lhs.lvalue >> 1]
       res_epoch -= 1
-    elseif rhs.lvalue == z64
+    elseif rhs.lvalue == zero(UT_Int)
       res_lvalue = lhs.lvalue
     else
       #do a lookup.

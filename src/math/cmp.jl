@@ -6,26 +6,28 @@
 import Base: <, >, <=, >=, ==
 
 @pfunction function <(x::PTile, y::PTile)
-  is_inf(y) | is_inf(x) | (@s x) < (@s y)
+  is_inf(y) | is_inf(x) | ((@s x) < (@s y))
 end
 
 @pfunction function >(x::PTile, y::PTile)
-  is_inf(y) | is_inf(x) | (@s y) < (@s x)
+  is_inf(y) | is_inf(x) | ((@s y) < (@s x))
 end
 
 @pfunction function <=(x::PTile, y::PTile)
-  is_inf(y) | is_inf(x) | (@s x) <= (@s y)
+  is_inf(y) | is_inf(x) | ((@s x) <= (@s y))
 end
 
 @pfunction function >=(x::PTile, y::PTile)
-  is_inf(y) | is_inf(x) | (@s y) >= (@s x)
+  is_inf(y) | is_inf(x) | ((@s y) >= (@s x))
 end
 
 @pfunction function Base.max(x::PTile, y::PTile)
+  is_inf(y) && return y
   (x > y) ? x : y
 end
 
 @pfunction function Base.min(x::PTile, y::PTile)
+  is_inf(y) && return y
   (x < y) ? x : y
 end
 
@@ -44,5 +46,5 @@ end
 end
 
 @pfunction function Base.abs(x::PTile)
-  @p((@i x) & MAG_MASK)
+  isnegative(x) ? additiveinverse(x) : x
 end

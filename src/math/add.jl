@@ -41,7 +41,7 @@ end
   (isempty(acc) || isempty(rhs)) && (set_empty!(acc); return)
   (ispreals(acc) || ispreals(rhs)) && (set_preals!(acc); return)
 
-  check_roundsinf::Bool = roundsinf(acc) || roundsinf(rhs)
+  check_roundsinf::Bool = containsinf(acc) || containsinf(rhs)
 
   #create some proxy variables that refer to the correct type
   l_upper_proxy::T = issingle(acc) ? acc.lower : acc.upper
@@ -178,9 +178,10 @@ end
   add_inv_table = table_name(lattice, :add_inv)
   isdefined(Unum2, add_inv_table) || create_inverted_addition_table(Val{lattice})
   quote
+    #println("this screws up...")
     if (big.epoch == sml.epoch)
-      res_value = $add_inv_table[big.lvalue >> 1  + 1, big.lvalue >> 1 + 1]
-      res_epoch = (res_value > big.lvalue) ? (big.epoch - 1) : big.epoch
+      res_lvalue = $add_inv_table[big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
+      res_epoch = (res_lvalue > big.lvalue) ? (big.epoch - 1) : big.epoch
     else
       return nothing # for now.
     end
@@ -193,7 +194,7 @@ end
       res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
     end
 
-    (res_uninvert, res_epoch, res_value)
+    (res_uninvert, res_epoch, res_lvalue)
   end
 end
 

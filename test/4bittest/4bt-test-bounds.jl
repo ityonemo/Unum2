@@ -102,3 +102,6 @@
 @test (ollo → oool) * (oolo → olol) == ℝᵖ(PBound4)
 #(2 1/2) * (1/2 2) == R\[1]
 @test (olol → oool) * (oolo → olol) == ℝᵖ(PBound4)
+
+#test that some additions can wrap around together
+@test (oool → llll) + ▾(oool) == ℝᵖ(PBound4)
