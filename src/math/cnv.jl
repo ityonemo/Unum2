@@ -2,7 +2,7 @@
 function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
   #set key constants.
   T = typeof(x)
-  _pivot = Float64(pivot(lattice))
+  _pivot = Float64(stride(lattice))
   _value = Float64(x)
   l = __MASTER_LATTICE_LIST[lattice]
 
@@ -30,7 +30,7 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
       _epoch_bottom *= _pivot
       dc_res.epoch += 1
     end
-    #now we know that _current_pivot is just over the pivot.
+    #now we know that _current_pivot is just over the stride.
     _value /= _epoch_bottom
     if (_value == _pivot)
       dc_res.epoch += 1
@@ -57,7 +57,7 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
 end
 
 @generated function Base.call{lattice, epochbits}(::Type{PTile{lattice, epochbits}}, value)
-  validate(__MASTER_LATTICE_LIST[lattice], __MASTER_PIVOT_LIST[lattice])  #double check to make sure it's ok, because why not.
+  validate(__MASTER_LATTICE_LIST[lattice], __MASTER_STRIDE_LIST[lattice])  #double check to make sure it's ok, because why not.
   #make sure epochs is more than 0
   (epochbits > 0) || throw(ArgumentError("must have at least one epoch bit"))
   return :(cnv(PTile{lattice, epochbits}, value))

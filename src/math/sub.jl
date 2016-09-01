@@ -186,9 +186,9 @@ end
   sub_epoch_table = Symbol("__$(lattice)_sub_epoch_table")
   #we need two tables, the subtraction table and the subtraction epoch table.
   quote
-    #store the lattice values and the pivot values.
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
@@ -218,9 +218,9 @@ end
   sub_inv_epoch_table = Symbol("__$(lattice)_sub_inv_epoch_table")
   #we need two tables, the subtraction table and the subtraction epoch table.
   quote
-    #store the lattice values and the pivot values.
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
@@ -248,9 +248,9 @@ end
   sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
   #we need two tables, the subtraction table and the subtraction epoch table.
   quote
-    #store the lattice values and the pivot values.
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
@@ -279,7 +279,7 @@ end
   inv_table = table_name(lattice, :inv)
   quote
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
 
     #actually allocate the memory for the inversion table.

@@ -124,9 +124,9 @@ end
 @generated function create_division_table{lattice}(::Type{Val{lattice}})
   div_table = table_name(lattice, :div)
   quote
-    #store the lattice values and the pivot values.
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #allocate the memory for the matrix.
     global const $div_table = Matrix{UInt64}(l, l)
@@ -134,7 +134,7 @@ end
     for idx = 1:l
       for idx2 = 1:l
         true_value = lattice_values[idx] / lattice_values[idx2]
-        #first check to see if the true_value corresponds to the pivot value.
+        #first check to see if the true_value corresponds to the stride value.
         (true_value < 1) && (true_value *= pivot_value)
 
         $div_table[idx, idx2] = @i search_lattice(lattice_values, true_value)

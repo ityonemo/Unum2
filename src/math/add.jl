@@ -178,7 +178,7 @@ end
   add_inv_table = table_name(lattice, :add_inv)
   isdefined(Unum2, add_inv_table) || create_inverted_addition_table(Val{lattice})
   quote
-    #println("this screws up...")
+    #__MASTER_STRIDE_LIST("this screws up...")
     if (big.epoch == sml.epoch)
       res_lvalue = $add_inv_table[big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
       res_epoch = (res_lvalue > big.lvalue) ? (big.epoch - 1) : big.epoch
@@ -219,12 +219,20 @@ end
 # ADDITION TABLES
 ################################################################################
 
+doc"""
+  Unum2.create_addition_table(::Type{Val{lattice}})
+
+  creates addition tables for a given lattice, including cross-epoch lattices
+"""
 @generated function create_addition_table{lattice}(::Type{Val{lattice}})
   add_table = table_name(lattice, :add)
   quote
-    #store the lattice values and the pivot values.
+    #calculate how many addition lattice cells we'll need.
+    count_uninverted_addition_cells(Val{lattice})
+
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
@@ -234,7 +242,7 @@ end
     for idx = 0:l, idx2 = 0:l
       true_value = ((idx == 0) ? 1 : lattice_values[idx]) +
                    ((idx2 == 0) ? 1 : lattice_values[idx2])
-      #first check to see if the true_value corresponds to the pivot value.
+      #first check to see if the true_value corresponds to the stride value.
       (true_value >= pivot_value) && (true_value /= pivot_value)
 
       $add_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
@@ -245,9 +253,9 @@ end
 @generated function create_inverted_addition_table{lattice}(::Type{Val{lattice}})
   add_inv_table = table_name(lattice, :add_inv)
   quote
-    #store the lattice values and the pivot values.
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
@@ -258,7 +266,7 @@ end
       true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) +
                    ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
 
-      #first check to see if the true_value corresponds to the pivot value.
+      #first check to see if the true_value corresponds to the stride value.
       (true_value < 1) && (true_value *= pivot_value)
 
       $add_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
@@ -269,9 +277,9 @@ end
 @generated function create_crossed_addition_table{lattice}(::Type{Val{lattice}})
   add_cross_table = table_name(lattice, :add_cross)
   quote
-    #store the lattice values and the pivot values.
+    #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_PIVOT_LIST[lattice]
+    pivot_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
@@ -281,7 +289,7 @@ end
     for idx = 0:l, idx2 = 0:l
       true_value = (((idx == 0) ? 1 : lattice_values[idx]) +
                    ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
-      #first check to see if the true_value corresponds to the pivot value.
+      #first check to see if the true_value corresponds to the stride value.
       (true_value >= pivot_value) && (true_value /= pivot_value)
 
       $add_cross_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)

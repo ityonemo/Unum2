@@ -61,14 +61,14 @@ end
 
     ivalue = @s p
 
-    #println("i1:", hex(ivalue))
+    #__MASTER_STRIDE_LIST("i1:", hex(ivalue))
 
     negative = ivalue < zero(ST_Int)
     ivalue = abs(ivalue)
     inverted = ivalue & PTILE_ONE == zero(ST_Int)
     ivalue = (inverted ? -ivalue : ivalue) & (@s CON_MASK)
 
-    #println("i2:", hex(ivalue))
+    #__MASTER_STRIDE_LIST("i2:", hex(ivalue))
 
     epoch::ST_Int  = ivalue >> $eshift
     lvalue::UT_Int = @i(ivalue & $lmask) >> $tshift

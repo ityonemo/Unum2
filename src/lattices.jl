@@ -3,7 +3,7 @@
 typealias LatticeNum Union{AbstractFloat, Integer, Rational, Symbol}
 typealias Lattice Array{LatticeNum, 1}
 const __MASTER_LATTICE_LIST = Dict{Symbol, Lattice}()
-const __MASTER_PIVOT_LIST = Dict{Symbol, LatticeNum}()
+const __MASTER_STRIDE_LIST = Dict{Symbol, LatticeNum}()
 
 function validate(l::Lattice, p::LatticeNum)
   #makes sure that a lattice has a valid properties.
@@ -17,8 +17,8 @@ function validate(l::Lattice, p::LatticeNum)
     (idx < length(l)) && (floatval(l[idx]) < floatval(l[idx + 1]) || throw(ArgumentError("proposed lattice has invalid structure, $(l[idx]) > $(l[idx + 1])")))
   end
 
-  #make sure the last number in the lattice is less than the pivot.
-  (l[end] < floatval(p)) || throw(ArgumentError("proposed lattice is bigger than the pivot value"))
+  #make sure the last number in the lattice is less than the stride.
+  (l[end] < floatval(p)) || throw(ArgumentError("proposed lattice is bigger than the stride value"))
 end
 
 ################################################################################
@@ -52,8 +52,8 @@ function describe(n::LatticeNum)
   string(n)
 end
 
-function pivot(name::Symbol)
-  __MASTER_PIVOT_LIST[name]
+function stride(name::Symbol)
+  __MASTER_STRIDE_LIST[name]
 end
 
 function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
@@ -61,7 +61,7 @@ function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
   if haskey(__MASTER_LATTICE_LIST, name)
     #it's all good if they are the same.
     if (__MASTER_LATTICE_LIST[name] == l) &&
-       (__MASTER_PIVOT_LIST[name] == p)
+       (__MASTER_STRIDE_LIST[name] == p)
        return nothing
     end
 
@@ -69,13 +69,13 @@ function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
   end
   validate(l, p)
   __MASTER_LATTICE_LIST[name] = l
-  __MASTER_PIVOT_LIST[name] = p
+  __MASTER_STRIDE_LIST[name] = p
   nothing
 end
 
 function list(l::Lattice)
-  println("members of lattice:")
-  println(join(l, ", "))
+  __MASTER_STRIDE_LIST("members of lattice:")
+  __MASTER_STRIDE_LIST(join(l, ", "))
 end
 
 function latticebits(l::Lattice)

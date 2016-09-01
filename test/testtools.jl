@@ -19,17 +19,17 @@ function testop(op, inputs, expected, testname)
         res = op(▾(inputs[i]), ▾(inputs[j]))
 
         if (res != expected[i, j])
-          println("$i, $j: $(inputs[i]) $op $(inputs[j]) failed as $(res); should be $(expected[i,j])")
+          __MASTER_STRIDE_LIST("$i, $j: $(inputs[i]) $op $(inputs[j]) failed as $(res); should be $(expected[i,j])")
           fails += 1
         end
       catch e
-        println("$i, $j: $(inputs[i]) $op $(inputs[j]) failed due to thrown error: $e")
+        __MASTER_STRIDE_LIST("$i, $j: $(inputs[i]) $op $(inputs[j]) failed due to thrown error: $e")
         bt = catch_backtrace()
         s = sprint(io->Base.show_backtrace(io, bt))
-        println("$s")
+        __MASTER_STRIDE_LIST("$s")
         fails += 1
       end
     end
   end
-  println("$testname: $op $fails / $(totalsize) = $(100 * fails/totalsize)% failure!")
+  __MASTER_STRIDE_LIST("$testname: $op $fails / $(totalsize) = $(100 * fails/totalsize)% failure!")
 end
