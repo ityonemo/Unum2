@@ -32,7 +32,12 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
     end
     #now we know that _current_pivot is just over the pivot.
     _value /= _epoch_bottom
-    dc_res.lvalue = search_lattice(l, _value)
+    if (_value == _pivot)
+      dc_res.epoch += 1
+      dc_res.lvalue = zero(UT_Int)
+    else
+      dc_res.lvalue = search_lattice(l, _value)
+    end
   else #inverted
     set_inverted!(dc_res)
     _value *= _pivot
@@ -41,7 +46,12 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
       _value *= _pivot
       dc_res.epoch += 1
     end
-    dc_res.lvalue = search_lattice(l, _pivot / _value)
+    if (_value == one(T))
+      dc_res.epoch += 1
+      dc_res.lvalue = zero(UT_Int)
+    else
+      dc_res.lvalue = search_lattice(l, _pivot / _value)
+    end
   end
   synthesize(P, dc_res)
 end

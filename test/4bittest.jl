@@ -165,13 +165,13 @@ import Unum2: decompose, synthesize, __dc_tile, UT_Int, ST_Int
 
 ################################################################################
 
-include("4bittest/mathtestdefs.jl")
+include("4bittest/4btdefs.jl")
 include("4bittest/4bt-test-add.jl")
 include("4bittest/4bt-test-mul.jl")
 
 #test addition
-testop(+, btadd)
+testop4(+, btadd)
 #test multiplication
-testop(*, btmul)
+testop4(*, btmul)
 
 include("4bittest/4bt-test-bounds.jl")

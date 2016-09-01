@@ -53,6 +53,8 @@ end
 ################################################################################
 
 function exact_algorithmic_division{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  (lhs == rhs) && return one(PTile{lattice, epochbits})
+
   dc_lhs = decompose(lhs)
   dc_rhs = decompose(rhs)
 
@@ -73,10 +75,17 @@ end
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
+    #println("lhs:  $lhs")
+    #println("rhs:  $rhs")
+
     res_epoch = lhs.epoch - rhs.epoch
 
     if lhs.lvalue == zero(UT_Int)
-      res_lvalue = $inv_table[lhs.lvalue >> 1]
+      if (rhs.lvalue == 0)
+        res_lvalue = 0
+      else
+        res_lvalue = $inv_table[rhs.lvalue >> 1]
+      end
       res_epoch -= 1
     elseif rhs.lvalue == zero(UT_Int)
       res_lvalue = lhs.lvalue
@@ -87,14 +96,24 @@ end
       (res_lvalue > lhs.lvalue) && (res_epoch -= 1)
     end
 
+
     res_inverted = false
     #may need to reverse the orientation on the result.
     if (res_epoch < 0)
       res_inverted = true
       res_epoch = (-res_epoch) - 1
       #invert the value.
-      res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+      if (res_lvalue == 0)
+        #a diagram illustrating the relationship here.... (example, 2-bit lattice)
+        #0 1 2 3|0 1 2 3|0 1 2 3
+        #  3 2 1 0|3 2 1 0
+        res_epoch += 1
+      else
+        res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+      end
     end
+
+    #println("$res_inverted $res_epoch : $res_lvalue")
 
     (res_inverted, res_epoch, res_lvalue)
   end

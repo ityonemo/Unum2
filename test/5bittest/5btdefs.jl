@@ -34,26 +34,4 @@ loool = -PTile5(9)
 p5vec = [ooool, ooolo, oooll, ooloo, oolol, oollo, oolll, olooo, olool, ololo, ololl, olloo, ollol, olllo, ollll]
 
 #and a general purpose function for testing an operation,
-function testop5(op, expected)
-  #now create a matrix of warlpiris
-  fails = 0
-  for i=1:15
-    for j=1:15
-      try
-        res = op(▾(p5vec[i]), ▾(p5vec[j]))
-
-        if (res != expected[i, j])
-          println("$i, $j: $(p5vec[i]) $op $(p5vec[j]) failed as $(res); should be $(expected[i,j])")
-          fails += 1
-        end
-      catch e
-        println("$i, $j: $(p5vec[i]) $op $(p5vec[j]) failed due to thrown error: $e")
-        bt = catch_backtrace()
-        s = sprint(io->Base.show_backtrace(io, bt))
-        println("$s")
-        fails += 1
-      end
-    end
-  end
-  println("$op $fails / 225 = $(100 * fails/225)% failure!")
-end
+testop5(op, expected) = testop(op, p5vec, expected, :PFloat5)

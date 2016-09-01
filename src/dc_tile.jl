@@ -59,15 +59,19 @@ end
     #first create a new value.
     res::__dc_tile = zero(__dc_tile)
 
-    ivalue = @i p
+    ivalue = @s p
 
-    negative = (SIGN_MASK & ivalue) != PTILE_ZERO
-    inverted = ((INV_MASK & ivalue) == PTILE_ZERO) $ negative
+    #println("i1:", hex(ivalue))
 
-    tvalue::UT_Int = @i(((negative != inverted) ? -1 : 1) * @s p)
-    epoch::ST_Int  = @s((tvalue & MAG_MASK) >>> $eshift)
-    lvalue::UT_Int = (tvalue & $lmask) >> $tshift
-    epoch -= !((@i p) & MAG_MASK == PTILE_ZERO)
+    negative = ivalue < zero(ST_Int)
+    ivalue = abs(ivalue)
+    inverted = ivalue & PTILE_ONE == zero(ST_Int)
+    ivalue = (inverted ? -ivalue : ivalue) & (@s CON_MASK)
+
+    #println("i2:", hex(ivalue))
+
+    epoch::ST_Int  = ivalue >> $eshift
+    lvalue::UT_Int = @i(ivalue & $lmask) >> $tshift
 
     return __dc_tile(epoch, lvalue , negative * __DC_NEGATIVE + inverted * __DC_INVERTED)
   end

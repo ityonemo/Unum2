@@ -4,15 +4,19 @@ using Base.Test
 include("testtools.jl")
 include("4bittest.jl")
 include("5bittest.jl")
+include("5bitepochtest.jl")
 
 
 #=
-import_lattice(:PFloat5)
+import_lattice(:PFloat5e)
 
-#2, 4: PTile5(0b00010) + PTile5(0b00100) failed as ▾(PTile5(0b00110)); should be ▾(PTile5(0b00101))
+#5, 13: PTile5e(0b00101) * PTile5e(0b01101) failed as PTile5e(0b01001) → PTile5e(0b00111); should be PTile5e(0b01001) → PTile5e(0b01011)
 
-x = ▾(PTile5(0b00010))
-y = ▾(PTile5(0b00100))
+x = ▾(PTile5e(0b00100))
+y = ▾(PTile5e(0b01100))
 
-println(x + y)
+println(x)
+println(y)
+
+println(x * y)
 =#
