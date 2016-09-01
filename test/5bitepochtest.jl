@@ -44,6 +44,6 @@ include("5bitepochtest/5be-test-sub.jl")
 include("5bitepochtest/5be-test-mul.jl")
 
 #test addition
-#testop5(+, betadd5)
+testop5(+, betadd5)
 #testop5(-, betsub5)
 testop5(*, betmul5)

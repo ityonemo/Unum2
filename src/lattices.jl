@@ -98,7 +98,8 @@ const __LATTICE_DICT = Dict{Symbol, ASCIIString}(
   :PFloat3 => "three-bit-lattice.jl",
   :PFloat4 => "four-bit-lattice.jl",
   :PFloat5 => "five-bit-lattice.jl",
-  :PFloat5e => "five-bit-epoch-lattice.jl"
+  :PFloat5e => "five-bit-epoch-lattice.jl",
+  :PFloat6 => "six-bit-lattice.jl"
 )
 
 function import_lattice(l)
