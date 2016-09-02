@@ -151,23 +151,28 @@ function exact_algorithmic_addition{lattice, epochbits, output}(lhs::PTile{latti
   synthesize(PTile{lattice, epochbits}, res)
 end
 
-
 #perform the calculation of uninverted addition using partial (decomposed) values.
 @generated function uninverted_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
 
   #ensure that the requisite tables exist.
   add_table = table_name(lattice, :add)
-  isdefined(Unum2, add_table) || create_addition_table(Val{lattice})
-
+  isdefined(Unum2, add_table) || create_uninverted_addition_tables(Val{lattice})
   quote
-    if big.epoch == sml.epoch
-      res_value = $add_table[big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
-      res_epoch = (res_value < big.lvalue) ? (big.epoch + 1) : big.epoch
-    else
-      return nothing #for now.
-      #(result_value, result_epoch) = (h_epoch > l_epoch) ? add_unequal_epoch(x, y) : add_unequal_epoch(y, x)
+    #NB:  move this to be a precompiled value instead of a calculated value.
+
+    cells = size($add_table, 1)
+
+    lookup_cell = big.epoch - sml.epoch + 1
+
+    if lookup_cell <= cells #if the cells exist...
+      res_lvalue = $add_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+      res_epoch = (res_lvalue < big.lvalue) ? (big.epoch + 1) : big.epoch
+    else  #we don't need any informational cells because the result is simply bumped up.
+      res_epoch = big.epoch
+      res_lvalue = big.lvalue + 1
     end
-    (res_epoch, res_value)
+
+    (res_epoch, res_lvalue)
   end
 end
 
@@ -176,14 +181,23 @@ end
 
   #ensure that the requisite tables exist.
   add_inv_table = table_name(lattice, :add_inv)
-  isdefined(Unum2, add_inv_table) || create_inverted_addition_table(Val{lattice})
+  isdefined(Unum2, add_inv_table) || create_inverted_addition_tables(Val{lattice})
+  max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) - 1
   quote
-    #__MASTER_STRIDE_LIST("this screws up...")
-    if (big.epoch == sml.epoch)
-      res_lvalue = $add_inv_table[big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
+    cells = size($add_inv_table, 1)
+    lookup_cell = sml.epoch - big.epoch + 1
+
+    if lookup_cell <= cells
+      res_lvalue = $add_inv_table[1, big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
       res_epoch = (res_lvalue > big.lvalue) ? (big.epoch - 1) : big.epoch
+    elseif (big.lvalue != 0)
+      #println("hi 2")
+      res_epoch = big.epoch
+      res_lvalue = big.lvalue - 1
     else
-      return nothing # for now.
+      #println("hi 1")
+      res_epoch -= 1
+      res_lvalue = $max_lvalue
     end
 
     #may need to reverse the orientation on the result.
@@ -202,16 +216,26 @@ end
 
   #ensure that the requisite tables exist.
   add_cross_table = table_name(lattice, :add_cross)
-  isdefined(Unum2, add_cross_table) || create_crossed_addition_table(Val{lattice})
+  isdefined(Unum2, add_cross_table) || create_crossed_addition_tables(Val{lattice})
   quote
-    if (big.epoch == 0) && (big.epoch == 0) #h is not inverted, and l is inverted
-      res_value = $add_cross_table[big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
-      res_epoch = (res_value < big.lvalue) ? (big.epoch + 1) : big.epoch
+    cells = size($add_cross_table, 1)
+
+    #calculating the lookup cell looks funny, but really it's fine.  Example:
+    # uninverted 0, inverted 0 - cell 1
+    # uninverted 0, inverted 1 - cell 2
+    # uninverted 1, inverted 0 - cell 2
+    lookup_cell = big.epoch + sml.epoch + 1
+
+    #if (lookup_cell <= cells)
+    if lookup_cell == 1
+      res_lvalue = $add_cross_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+      res_epoch = (res_lvalue < big.lvalue) ? (big.epoch + 1) : big.epoch
     else
-      return nothing #for now.
+      res_epoch = big.epoch
+      res_lvalue = big.lvalue + 1
     end
 
-    (res_epoch, res_value)
+    (res_epoch, res_lvalue)
   end
 end
 
@@ -220,79 +244,114 @@ end
 ################################################################################
 
 doc"""
-  Unum2.create_addition_table(::Type{Val{lattice}})
+  Unum2.create_uninverted_addition_tables(::Type{Val{lattice}})
 
   creates addition tables for a given lattice, including cross-epoch lattices
 """
-@generated function create_addition_table{lattice}(::Type{Val{lattice}})
+@generated function create_uninverted_addition_tables{lattice}(::Type{Val{lattice}})
   add_table = table_name(lattice, :add)
   quote
     #calculate how many addition lattice cells we'll need.
-    count_uninverted_addition_cells(Val{lattice})
+    cells = count_uninverted_addition_cells(Val{lattice}) + 1
 
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_STRIDE_LIST[lattice]
+    stride_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
-    global const $add_table = Matrix{UInt64}(l + 1, l + 1)
+    global const $add_table = Array(UT_Int, cells, l + 1, l + 1)
 
-    for idx = 0:l, idx2 = 0:l
-      true_value = ((idx == 0) ? 1 : lattice_values[idx]) +
-                   ((idx2 == 0) ? 1 : lattice_values[idx2])
-      #first check to see if the true_value corresponds to the stride value.
-      (true_value >= pivot_value) && (true_value /= pivot_value)
-
-      $add_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
+    #create all the tables.
+    for add_cell = 1:cells
+      populate_uninverted_addition_table!($add_table, lattice_values, stride_value, add_cell - 1)
     end
+
+    #create the secondary tables.
   end
 end
 
-@generated function create_inverted_addition_table{lattice}(::Type{Val{lattice}})
+function populate_uninverted_addition_table!(table, lattice_values, stride_value, epoch_delta)
+  l = length(lattice_values)
+  power_factor = stride_value ^ epoch_delta
+
+  for idx = 0:l, idx2 = 0:l
+    true_value = ((idx == 0) ? 1 : power_factor * lattice_values[idx]) +
+                 ((idx2 == 0) ? 1 : lattice_values[idx2])
+    #first check to see if the true_value corresponds to the stride value.
+    (true_value >= power_factor * stride_value) && (true_value /= stride_value)
+
+    table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value, power_factor)
+  end
+end
+
+@generated function create_inverted_addition_tables{lattice}(::Type{Val{lattice}})
   add_inv_table = table_name(lattice, :add_inv)
   quote
+    inv_cells = count_uninverted_addition_cells(Val{lattice}) + 1
+
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_STRIDE_LIST[lattice]
+    stride_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
-    global const $add_inv_table = Matrix{UInt64}(l + 1, l + 1)
+    global const $add_inv_table = Array(UT_Int, inv_cells, l + 1, l + 1)
 
-    for idx = 0:l, idx2 = 0:l
-      true_value = 1/(((idx == 0) ? 1 : 1/lattice_values[idx]) +
-                   ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
-
-      #first check to see if the true_value corresponds to the stride value.
-      (true_value < 1) && (true_value *= pivot_value)
-
-      $add_inv_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
+    #create all the tables.
+    for add_inv_cell = 1:inv_cells
+      populate_inverted_addition_table!($add_inv_table, lattice_values, stride_value, add_inv_cell - 1)
     end
   end
 end
 
-@generated function create_crossed_addition_table{lattice}(::Type{Val{lattice}})
+function populate_inverted_addition_table!(table, lattice_values, stride_value, epoch_delta)
+  l = length(lattice_values)
+  power_factor = stride_value ^ epoch_delta
+  for idx = 0:l, idx2 = 0:l
+    true_value = 1 / (((idx == 0) ? power_factor : power_factor/lattice_values[idx]) +
+                 ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
+    #first check to see if the true_value corresponds to the stride value.
+    (true_value < power_factor) && (true_value *= stride_value)
+
+    table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value, power_factor)
+  end
+end
+
+@generated function create_crossed_addition_tables{lattice}(::Type{Val{lattice}})
   add_cross_table = table_name(lattice, :add_cross)
   quote
+
+    #calculate how many addition lattice cells we'll need.
+    cross_cells = count_crossed_addition_cells(Val{lattice}) + 1
+
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_STRIDE_LIST[lattice]
+    stride_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
-    global const $add_cross_table = Matrix{UInt64}(l + 1, l + 1)
+    global const $add_cross_table = Array(UT_Int, cross_cells, l + 1, l + 1)
 
-    for idx = 0:l, idx2 = 0:l
-      true_value = (((idx == 0) ? 1 : lattice_values[idx]) +
-                   ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
-      #first check to see if the true_value corresponds to the stride value.
-      (true_value >= pivot_value) && (true_value /= pivot_value)
-
-      $add_cross_table[idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
+    for add_cross_cell = 1:cross_cells
+      populate_crossed_addition_table!($add_cross_table, lattice_values, stride_value, add_cross_cell)
     end
+  end
+end
+
+function populate_crossed_addition_table!(table, lattice_values, stride_value, epoch_delta)
+  l = length(lattice_values)
+  power_factor = stride_value ^ epoch_delta
+
+  for idx = 0:l, idx2 = 0:l
+    true_value = (((idx == 0) ? power_factor : power_factor * lattice_values[idx]) +
+                 ((idx2 == 0) ? 1 : 1/lattice_values[idx2]))
+    #first check to see if the true_value corresponds to the stride value.
+    (true_value >= power_factor * stride_value) && (true_value /= stride_value)
+
+    table[epoch_delta, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value, power_factor)
   end
 end

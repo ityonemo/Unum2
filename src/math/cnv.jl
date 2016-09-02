@@ -2,7 +2,7 @@
 function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
   #set key constants.
   T = typeof(x)
-  _pivot = Float64(stride(lattice))
+  _stride = Float64(stride(lattice))
   _value = Float64(x)
   l = __MASTER_LATTICE_LIST[lattice]
 
@@ -26,13 +26,13 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
   elseif (_value > one(T))
     dc_res.epoch = 0
     _epoch_bottom = 1.0
-    while (_value > _epoch_bottom * _pivot)
-      _epoch_bottom *= _pivot
+    while (_value > _epoch_bottom * _stride)
+      _epoch_bottom *= _stride
       dc_res.epoch += 1
     end
-    #now we know that _current_pivot is just over the stride.
+    #now we know that _current_stride is just over the stride.
     _value /= _epoch_bottom
-    if (_value == _pivot)
+    if (_value == _stride)
       dc_res.epoch += 1
       dc_res.lvalue = zero(UT_Int)
     else
@@ -40,17 +40,17 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
     end
   else #inverted
     set_inverted!(dc_res)
-    _value *= _pivot
+    _value *= _stride
     dc_res.epoch = 0
     while (_value < 1.0)
-      _value *= _pivot
+      _value *= _stride
       dc_res.epoch += 1
     end
     if (_value == one(T))
       dc_res.epoch += 1
       dc_res.lvalue = zero(UT_Int)
     else
-      dc_res.lvalue = search_lattice(l, _pivot / _value)
+      dc_res.lvalue = search_lattice(l, _stride / _value)
     end
   end
   synthesize(P, dc_res)

@@ -74,20 +74,25 @@ function addlattice(name::Symbol, l::Lattice, p::LatticeNum)
 end
 
 function list(l::Lattice)
-  __MASTER_STRIDE_LIST("members of lattice:")
-  __MASTER_STRIDE_LIST(join(l, ", "))
+  println("members of lattice:")
+  println(join(l, ", "))
 end
 
 function latticebits(l::Lattice)
   trailing_zeros(length(l) + 1) + 1
 end
 
-function search_lattice(l::Lattice, v)
-  v == 1 && return 0
+doc"""
+  search_lattice(l::Lattice, v, p) searches through the lattice, comparing the
+  value v to the values in the lattice.  Generally, v should be between p and
+  p * stride, although this isn't enforced by the
+"""
+function search_lattice(l::Lattice, v, p = 1)
+  v == p && return 0
   for idx = 1:length(l)
-    if v == l[idx]
+    if v == p*l[idx]
       return idx * 2
-    elseif v < l[idx]
+    elseif v < p*l[idx]
       return idx * 2 - 1
     end
   end

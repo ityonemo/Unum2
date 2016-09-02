@@ -160,8 +160,9 @@ doc"""
 """
 function count_cell_condition{lattice}(T::Type{Val{lattice}}, f::Function)
   idx = 1
-  while true
+  while idx < 16  #let's presume that 10 epochs of detail is more than enough
     (!f(T, idx)) || return idx - 1
+    idx += 1
   end
   throw(ErrorException("problem, attempting to calculate $f for $T"))
 end

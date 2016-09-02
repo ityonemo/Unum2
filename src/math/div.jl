@@ -126,7 +126,7 @@ end
   quote
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
-    pivot_value = __MASTER_STRIDE_LIST[lattice]
+    stride_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #allocate the memory for the matrix.
     global const $div_table = Matrix{UInt64}(l, l)
@@ -135,7 +135,7 @@ end
       for idx2 = 1:l
         true_value = lattice_values[idx] / lattice_values[idx2]
         #first check to see if the true_value corresponds to the stride value.
-        (true_value < 1) && (true_value *= pivot_value)
+        (true_value < 1) && (true_value *= stride_value)
 
         $div_table[idx, idx2] = @i search_lattice(lattice_values, true_value)
       end
