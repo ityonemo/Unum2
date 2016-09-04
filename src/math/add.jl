@@ -191,11 +191,9 @@ end
       res_lvalue = $add_inv_table[1, big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
       res_epoch = (res_lvalue > big.lvalue) ? (big.epoch - 1) : big.epoch
     elseif (big.lvalue != 0)
-      #println("hi 2")
       res_epoch = big.epoch
       res_lvalue = big.lvalue - 1
     else
-      #println("hi 1")
       res_epoch -= 1
       res_lvalue = $max_lvalue
     end
@@ -277,7 +275,7 @@ function populate_uninverted_addition_table!(table, lattice_values, stride_value
   power_factor = stride_value ^ epoch_delta
 
   for idx = 0:l, idx2 = 0:l
-    true_value = ((idx == 0) ? 1 : power_factor * lattice_values[idx]) +
+    true_value = ((power_factor * ((idx == 0) ? 1 : 1 * lattice_values[idx]))) +
                  ((idx2 == 0) ? 1 : lattice_values[idx2])
     #first check to see if the true_value corresponds to the stride value.
     (true_value >= power_factor * stride_value) && (true_value /= stride_value)
