@@ -51,15 +51,8 @@ end
 # ALGORITHMIC SUBTRACTION
 ################################################################################
 
-function exact_algorithmic_subtraction{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function exact_algorithmic_subtraction{lattice, output}(big::__dc_tile, sml::__dc_tile,  L::Type{Val{lattice}}, OT::Type{Val{output}})
   #first, we should sort the two numbers into high
-  flipped = isnegative(x) $ (x < y)
-  (outer, inner) = (flipped) ? (y, x) : (x, y)
-  #for now, only support adding a non-inverted value to a non-inverted value.
-
-  big = decompose(outer)
-  sml = decompose(inner)
-
   res::__dc_tile = big
 
   if is_uninverted(big) && is_uninverted(sml) #sub a non-inverted value from a non-inverted value.
@@ -71,8 +64,6 @@ function exact_algorithmic_subtraction{lattice, epochbits, output}(x::PTile{latt
     (invert, res.epoch, res.lvalue) = crossed_subtraction_decomposed(big, sml, Val{lattice}, OT)
     invert && set_inverted!(res)
   end
-
-  flipped && flip_negative!(res)
 
   res
 end

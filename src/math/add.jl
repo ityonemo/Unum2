@@ -107,9 +107,20 @@ end
 
 function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(lhs) $ isnegative(rhs))
-    (lhs == -rhs) && return zero(PTile{lattice, epochbits})
+    nrhs = -rhs
 
-    res = exact_algorithmic_subtraction(lhs, -rhs, OT)
+    (lhs == nrhs) && return zero(PTile{lattice, epochbits})
+
+    flipped = isnegative(lhs) $ (lhs < nrhs)
+    (outer, inner) = (flipped) ? (nrhs, lhs) : (lhs, nrhs)
+    #for now, only support adding a non-inverted value to a non-inverted value.
+
+    big = decompose(outer)
+    sml = decompose(inner)
+
+    res = exact_algorithmic_subtraction(big, sml, Val{lattice}, OT)
+
+    flipped && flip_negative!(res)
   else
     #reorder the two values so that they're in magnitude order.
     (h, l) = ((lhs > rhs) $ (isnegative(lhs))) ? (lhs, rhs) : (rhs, lhs)
