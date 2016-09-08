@@ -10,13 +10,21 @@ include("5bitepochtest.jl")
 #=
 import_lattice(:PFloat5e)
 
-#2, 6: PTile5e(0b00010) + PTile5e(0b00110) failed as ▾(PTile5e(0b01000)); should be ▾(PTile5e(0b00111))
+# one(PTile5e) - PTile5e(0b00100)
 
-x = ▾(PTile5e(0b00010))
-y = ▾(PTile5e(0b00110))
+x = ▾(PTile5e(0b01000))
+y = ▾(PTile5e(0b00100))
 
 println(x)
 println(y)
 
-println(x + y)
+println(x - y)
+=#
+#=
+println("====")
+display(Unum2.__Lnum5e_sub_table)
+println()
+println("----")
+display(Unum2.__Lnum5e_sub_epoch_table)
+println()
 =#

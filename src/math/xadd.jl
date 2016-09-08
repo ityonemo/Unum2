@@ -103,6 +103,11 @@ function check_uninverted_subtraction{lattice}(T::Type{Val{lattice}}, power::Int
   P = (__MASTER_STRIDE_LIST[lattice]) ^ power
   M = last(L)
 
+  #don't forget to check the "last" value for the previous epoch.
+  Q = ((__MASTER_STRIDE_LIST[lattice]) ^ (power - 1)) * M
+
+  (P - M <= Q) && return false
+
   pass = true
   for index = 1:length(L) + 1
     pass &= (P * valuefor(index, T) - M) > (P * valuefor(index - 1, T))
@@ -141,7 +146,7 @@ doc"""
 function check_inverted_subtraction{lattice}(T::Type{Val{lattice}}, power::Integer)
   L = __MASTER_LATTICE_LIST[lattice]
   P = (__MASTER_STRIDE_LIST[lattice]) ^ power
-  M = 1/first(L)
+  M = 1
 
   pass = true
   for index = 0:length(L)

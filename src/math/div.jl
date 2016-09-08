@@ -75,8 +75,6 @@ end
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
-    #println("lhs:  $lhs")
-    #println("rhs:  $rhs")
 
     res_epoch = lhs.epoch - rhs.epoch
 
@@ -112,8 +110,6 @@ end
         res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
       end
     end
-
-    #println("$res_inverted $res_epoch : $res_lvalue")
 
     (res_inverted, res_epoch, res_lvalue)
   end

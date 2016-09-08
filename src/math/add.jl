@@ -182,7 +182,7 @@ end
   #ensure that the requisite tables exist.
   add_inv_table = table_name(lattice, :add_inv)
   isdefined(Unum2, add_inv_table) || create_inverted_addition_tables(Val{lattice})
-  max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) - 1
+  max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) + 1
   quote
     cells = size($add_inv_table, 1)
     lookup_cell = sml.epoch - big.epoch + 1
