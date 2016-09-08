@@ -109,7 +109,15 @@ function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, r
   if (isnegative(lhs) $ isnegative(rhs))
     exact_algorithmic_subtraction(lhs, -rhs, OT)
   else
-    exact_algorithmic_addition(lhs, rhs, OT)
+    #reorder the two values so that they're in magnitude order.
+    (h, l) = ((lhs > rhs) $ (isnegative(lhs))) ? (lhs, rhs) : (rhs, lhs)
+
+    big = decompose(h)
+    sml = decompose(l)
+
+    res = exact_algorithmic_addition(big, sml, Val{lattice}, OT)
+
+    synthesize(PTile{lattice, epochbits}, res)
   end
 end
 
@@ -129,12 +137,7 @@ end
 # ALGORITHMIC ADDITION
 ################################################################################
 
-function exact_algorithmic_addition{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  #reorder the two values so that they're in magnitude order.
-  (h, l) = ((lhs > rhs) $ (isnegative(lhs))) ? (lhs, rhs) : (rhs, lhs)
-
-  big = decompose(h)
-  sml = decompose(l)
+function exact_algorithmic_addition{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
 
   res::__dc_tile = big
 
@@ -147,8 +150,7 @@ function exact_algorithmic_addition{lattice, epochbits, output}(lhs::PTile{latti
     (res.epoch, res.lvalue) = crossed_addition_decomposed(big, sml, Val{lattice}, OT)
   end
 
-  #reconstitute the result.
-  synthesize(PTile{lattice, epochbits}, res)
+  res
 end
 
 #perform the calculation of uninverted addition using partial (decomposed) values.
