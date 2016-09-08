@@ -52,8 +52,6 @@ end
 ################################################################################
 
 function exact_algorithmic_subtraction{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  (x == y) && return zero(PTile{lattice, epochbits})
-
   #first, we should sort the two numbers into high
   flipped = isnegative(x) $ (x < y)
   (outer, inner) = (flipped) ? (y, x) : (x, y)
@@ -74,9 +72,9 @@ function exact_algorithmic_subtraction{lattice, epochbits, output}(x::PTile{latt
     invert && set_inverted!(res)
   end
 
-  v = synthesize(PTile{lattice, epochbits}, res)
+  flipped && flip_negative!(res)
 
-  (flipped) ? -v : v
+  res
 end
 
 lattice_length(l::Symbol) = length(__MASTER_LATTICE_LIST[l])

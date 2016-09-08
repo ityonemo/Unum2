@@ -107,7 +107,9 @@ end
 
 function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if (isnegative(lhs) $ isnegative(rhs))
-    exact_algorithmic_subtraction(lhs, -rhs, OT)
+    (lhs == -rhs) && return zero(PTile{lattice, epochbits})
+
+    res = exact_algorithmic_subtraction(lhs, -rhs, OT)
   else
     #reorder the two values so that they're in magnitude order.
     (h, l) = ((lhs > rhs) $ (isnegative(lhs))) ? (lhs, rhs) : (rhs, lhs)
@@ -116,9 +118,9 @@ function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, r
     sml = decompose(l)
 
     res = exact_algorithmic_addition(big, sml, Val{lattice}, OT)
-
-    synthesize(PTile{lattice, epochbits}, res)
   end
+
+  synthesize(PTile{lattice, epochbits}, res)
 end
 
 @generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
@@ -138,7 +140,6 @@ end
 ################################################################################
 
 function exact_algorithmic_addition{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
-
   res::__dc_tile = big
 
   if is_uninverted(big) && is_uninverted(sml) #add a non-inverted value to a non-inverted value.
