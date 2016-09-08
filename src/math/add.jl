@@ -90,6 +90,7 @@ doc"""
     is_zero(rhs) && return lhs
 
     if isexact(lhs) & isexact(rhs)
+      (rhs == -lhs) && return zero(PTile{lattice, epochbits})
       exact_add(lhs, rhs, OT)
     else
       inexact_add(lhs, rhs, OT)
@@ -99,18 +100,20 @@ end
 
 #sometimes you need to double check it's not a special value.
 function checked_exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  is_zero(lhs) && return rhs;
-  is_zero(rhs) && return lhs;
+  is_zero(lhs) && return rhs
+  is_zero(rhs) && return lhs
+  (rhs == -lhs) && return zero(PTile{lattice, epochbits})
 
   exact_add(lhs, rhs, OT)
 end
 
 function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  (lhs == -rhs) && return zero(PTile{lattice, epochbits})
+
+  subtraction = isnegative(lhs) $ isnegative(rhs)
 
   flipped = false
 
-  if (isnegative(lhs) $ isnegative(rhs))
+  if (subtraction)
     nrhs = -rhs
     flipped = isnegative(lhs) $ (lhs < nrhs)
     (outer, inner) = (flipped) ? (nrhs, lhs) : (lhs, nrhs)
@@ -122,7 +125,7 @@ function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, r
   big = decompose(outer)
   sml = decompose(inner)
 
-  if (isnegative(lhs) $ isnegative(rhs))
+  if (subtraction)
     #for now, only support adding a non-inverted value to a non-inverted value.
     res = exact_algorithmic_subtraction(big, sml, Val{lattice}, OT)
   else
