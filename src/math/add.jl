@@ -108,22 +108,30 @@ function checked_exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epoch
 end
 
 function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  (big, sml) = abs(lhs) > abs(rhs) ? (decompose(lhs), decompose(rhs)) : (decompose(rhs), decompose(lhs))
 
-  subtraction = isnegative(lhs) $ isnegative(rhs)
+  synthesize(PTile{lattice, epochbits}, exact_add_sorted(big, sml, Val{lattice}, OT))
+end
 
-  flipped = false
+function exact_add{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+  (big, sml) = magbigger(lhs, rhs) ? (lhs, rhs) : (rhs, lhs)
 
-  if (subtraction)
-    nrhs = -rhs
-    flipped = isnegative(lhs) $ (lhs < nrhs)
-    (outer, inner) = (flipped) ? (nrhs, lhs) : (lhs, nrhs)
-  else
-    #reorder the two values so that they're in magnitude order.
-    (outer, inner) = ((lhs > rhs) $ (isnegative(lhs))) ? (lhs, rhs) : (rhs, lhs)
-  end
+  exact_add_sorted(lhr, rhs, L, OT)
+end
 
-  big = decompose(outer)
-  sml = decompose(inner)
+function magbigger(lhs::__dc_tile, rhs::__dc_tile)
+  lhs_inverted = is_inverted(lhs)
+  (lhs_inverted $ is_inverted(rhs)) && return is_uninverted(lhs)
+
+  (lhs.epoch < rhs.epoch)   && return !lhs_inverted
+  (lhs.epoch > rhs.epoch)   && return lhs_inverted
+  (lhs.lvalue < rhs.lvalue) && return !lhs_inverted
+  return lhs_inverted
+end
+
+function exact_add_sorted{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+
+  subtraction = is_negative(big) $ is_negative(sml)
 
   if (subtraction)
     #for now, only support adding a non-inverted value to a non-inverted value.
@@ -131,10 +139,6 @@ function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, r
   else
     res = exact_algorithmic_addition(big, sml, Val{lattice}, OT)
   end
-
-  flipped && flip_negative!(res)
-
-  synthesize(PTile{lattice, epochbits}, res)
 end
 
 @generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})

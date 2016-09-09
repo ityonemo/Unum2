@@ -19,6 +19,7 @@ include("math/add.jl")
 include("math/mul.jl")
 include("math/div.jl")
 include("math/sub.jl")
+include("math/fma.jl")
 
 include("math/xadd.jl")
 
