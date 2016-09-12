@@ -45,6 +45,47 @@ end
   :(@p ((@i x) - $INCREMENTOR))
 end
 
+################################################################################
+# Special "exactiterator" type
+
+type ExactIterator{lattice, epochbits}
+  lower::PTile{lattice, epochbits}
+  upper::PTile{lattice, epochbits}
+end
+
+Base.start{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) = x.lower
+@generated function Base.next{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state)
+  :((state, next(next(state))))
+end
+Base.done{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state) = (state == x.upper)
+Base.eltype{lattice, epochbits}(T::Type{ExactIterator{lattice, epochbits}}) = PTile{lattice, epochbits}
+
+Base.length{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) =
+  @s(((@i x.upper) - (@i x.lower)) >> (64 - latticebits(lattice) - epochbits)) + 1
+
+
+function exacts{lattice, epochbits}(x::PBound{lattice, epochbits})
+  isempty(x) && throw(BoundsError("null set PBound has no exacts"))
+  if issingle(x)
+    if isexact(x.lower)
+      return ExactIterator(x.lower, x.lower)
+    else
+      throw(BoundsError("inexact tile PBound has no exacts"))
+    end
+  end
+  ispreals(x) && return ExactIterator(inf(PTile{lattice, epochbits}), maxexact(PTile{lattice, epochbits}))
+  lower = glb(x.lower)
+  upper = lub(x.upper)
+  (upper == lower) && (upper = prev(prev(upper)))
+  ExactIterator(lower, upper)
+end
+
+function exacts{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})
+  ExactIterator(inf(PTile{lattice, epochbits}), maxexact(T))
+end
+
+export exacts
+
 ##### DEDEKIND CUT FUNCTIONS
 
 doc"""

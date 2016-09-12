@@ -27,6 +27,12 @@ set_inverted!(v::__dc_tile)   = (v.flags |= __DC_INVERTED; nothing)
 flip_negative!(v::__dc_tile)  = (v.flags $= __DC_NEGATIVE; nothing)
 flip_inverted!(v::__dc_tile)  = (v.flags $= __DC_INVERTED; nothing)
 
+function additiveinverses(lhs::__dc_tile, rhs::__dc_tile)
+  ((lhs.flags $ rhs.flags) == __DC_NEGATIVE) || return false
+  (lhs.epoch == rhs.epoch) || return false
+  return lhs.lvalue == rhs.lvalue
+end
+
 #basic comparison - ability to test equality (good for test suites)
 import Base: ==
 ==(a::__dc_tile, b::__dc_tile) = (a.flags == b.flags) && (a.epoch == b.epoch) && (a.lvalue == b.lvalue)

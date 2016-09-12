@@ -13,10 +13,10 @@ function Base.fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PT
   (is_zero(a)) && return c
   (is_zero(b)) && return c
   (is_zero(c)) && return exact_mul(a, b, OT)
-  (is_one(a)) && return exact_add(b, c, OT)
-  (is_one(b)) && return exact_add(a, c, OT)
-  (is_neg_one(a)) && return exact_add(c, -b, OT)
-  (is_neg_one(b)) && return exact_add(c, -a, OT)
+  (is_one(a)) && return checked_exact_add(b, c, OT)
+  (is_one(b)) && return checked_exact_add(a, c, OT)
+  (is_neg_one(a)) && return checked_exact_add(c, -b, OT)
+  (is_neg_one(b)) && return checked_exact_add(c, -a, OT)
 
   if isexact(a) && isexact(b) && isexact(c)
     exact_fma(a, b, c, OT)
@@ -32,13 +32,14 @@ function checked_exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbi
   (is_zero(a)) && return c
   (is_zero(b)) && return c
   (is_zero(c)) && return exact_mul(a, b, OT)
-  (is_one(a)) && return exact_add(b, c, OT)
-  (is_one(b)) && return exact_add(a, c, OT)
-  (is_neg_one(a)) && return exact_add(c, -b, OT)
-  (is_neg_one(b)) && return exact_add(c, -a, OT)
+  (is_one(a)) && return checked_exact_add(b, c, OT)
+  (is_one(b)) && return checked_exact_add(a, c, OT)
+  (is_neg_one(a)) && return checked_exact_add(c, -b, OT)
+  (is_neg_one(b)) && return checked_exact_add(c, -a, OT)
 
   exact_fma(a, b, c, OT)
 end
+
 
 function exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
   #a few easy cases.
@@ -57,16 +58,20 @@ function exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::P
   else
     (dc_a.epoch, dc_a.lvalue) = algorithmic_multiplication_decomposed(dc_a, dc_b, Val{lattice}, OT)
   end
+  #check to see if they're inverses of each other.
 
   if isexact(a)
     #next, do the algorithmic addition/subtraction
+    additiveinverses(dc_a, dc_c) && return zero(PTile{lattice, epochbits})
     dc_a = exact_add(dc_a, dc_c, Val{lattice}, OT)
   elseif output == :lower
     glb!(dc_a)
+    additiveinverses(dc_a, dc_c) && return pos_few(PTile{lattice, epochbits})
     dc_a = exact_add(dc_a, dc_c, Val{lattice}, OT)
     upper_ulp!(dc_a)
   else #output == :upper
     lub!(dc_a)
+    additiveinverses(dc_a, dc_c) && return neg_few(PTile{lattice, epochbits})
     dc_a = exact_add(dc_a, dc_c, Val{lattice}, OT)
     lower_ulp!(dc_a)
   end
@@ -140,12 +145,14 @@ end
     #some special cases:  a or b is zero.
     if is_zero(a.lower)
       is_inf(b.lower) && (set_preals!(res); return)
-      (res.lower = zero(T); set_single!(res); return)
+      copy!(res, c)
+      return
     end
 
     if is_zero(b.lower)
       is_inf(a.lower) && (set_preals!(res); return)
-      (res.lower = zero(T); set_single!(res); return)
+      copy!(res, c)
+      return
     end
 
     is_inf(a.lower) && (res.lower = inf(T); set_single!(res); return)

@@ -28,6 +28,7 @@ pos_many{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_INF 
 neg_many{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_INF + incrementor(T))
 pos_few{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_ZERO + incrementor(T))
 neg_few{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_ZERO - incrementor(T))
+maxexact{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_INF - (2 * incrementor(T)))
 
 function extremum{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, negative::Bool, inverted::Bool)
   if negative

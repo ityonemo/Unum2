@@ -115,17 +115,17 @@ end
 function exact_add{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
   (big, sml) = magbigger(lhs, rhs) ? (lhs, rhs) : (rhs, lhs)
 
-  exact_add_sorted(lhs, rhs, L, OT)
+  exact_add_sorted(big, sml, L, OT)
 end
 
 function magbigger(lhs::__dc_tile, rhs::__dc_tile)
   lhs_inverted = is_inverted(lhs)
   (lhs_inverted $ is_inverted(rhs)) && return is_uninverted(lhs)
 
-  (lhs.epoch < rhs.epoch)   && return !lhs_inverted
-  (lhs.epoch > rhs.epoch)   && return lhs_inverted
-  (lhs.lvalue < rhs.lvalue) && return !lhs_inverted
-  return lhs_inverted
+  (lhs.epoch < rhs.epoch)   && return lhs_inverted
+  (lhs.epoch > rhs.epoch)   && return !lhs_inverted
+  (lhs.lvalue < rhs.lvalue) && return lhs_inverted
+  return !lhs_inverted
 end
 
 function exact_add_sorted{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})

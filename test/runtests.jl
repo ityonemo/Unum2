@@ -1,12 +1,22 @@
 using Unum2
 using Base.Test
 
-
+#=
 include("testtools.jl")
 include("4bittest.jl")
 include("5bittest.jl")
 include("5bitepochtest.jl")
+=#
 
+import_lattice(:PFloat5)
+
+println(fma(▾(PTile5(0b11110)), ▾(PTile5(0b10100)), ▾(PTile5(0b11010))))
+
+#=
+w = [fma(▾(x),▾(y),▾(z)) for x in exacts(PTile4), y in exacts(PTile4), z in exacts(PTile4)]
+
+println(w)
+=#
 #=
 import_lattice(:PFloat5)
 
