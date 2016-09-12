@@ -1,17 +1,47 @@
 #fma.jl - implementation of the fused-multiply add.
 
-function exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
-  #a few easy cases.
-  (is_inf(a)) && return is_zero(b) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PTile{lattice, epochbits}), OT)
-  (is_inf(b)) && return is_zero(a) ? noisy_R(PBound{lattice, epochbits}, OT) : coerce(inf(PTile{lattice, epochbits}), OT)
-  (is_inf(c)) && return coerce(inf(PTile{lattice, epochbits}), OT)
-  (is_zero(a)) && return coerce(c, OT)
-  (is_zero(b)) && return coerce(c, OT)
+@pfunction function Base.fma(a::PBound,b::PBound,c::PBound)
+  res = emptyset(B)
+  fma!(res, a, b, c)
+  res
+end
+
+function Base.fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  (is_inf(a)) && return inf(PTile{lattice, epochbits})
+  (is_inf(b)) && return inf(PTile{lattice, epochbits})
+  (is_inf(c)) && return inf(PTile{lattice, epochbits})
+  (is_zero(a)) && return c
+  (is_zero(b)) && return c
   (is_zero(c)) && return exact_mul(a, b, OT)
   (is_one(a)) && return exact_add(b, c, OT)
   (is_one(b)) && return exact_add(a, c, OT)
   (is_neg_one(a)) && return exact_add(c, -b, OT)
   (is_neg_one(b)) && return exact_add(c, -a, OT)
+
+  if isexact(a) && isexact(b) && isexact(c)
+    exact_fma(a, b, c, OT)
+  else
+    inexact_fma(a, b, c, OT)
+  end
+end
+
+function checked_exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  (is_inf(a)) && return inf(PTile{lattice, epochbits})
+  (is_inf(b)) && return inf(PTile{lattice, epochbits})
+  (is_inf(c)) && return inf(PTile{lattice, epochbits})
+  (is_zero(a)) && return c
+  (is_zero(b)) && return c
+  (is_zero(c)) && return exact_mul(a, b, OT)
+  (is_one(a)) && return exact_add(b, c, OT)
+  (is_one(b)) && return exact_add(a, c, OT)
+  (is_neg_one(a)) && return exact_add(c, -b, OT)
+  (is_neg_one(b)) && return exact_add(c, -a, OT)
+
+  exact_fma(a, b, c, OT)
+end
+
+function exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
+  #a few easy cases.
 
   dc_a = decompose(a)
   dc_b = decompose(b)
@@ -21,16 +51,27 @@ function exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::P
 
   #perform the algorithmic multiplication
   if (is_inverted(dc_a) $ is_inverted(dc_b))
-    (invert, dc_a.epoch, dc_a.lvalue) = algorithmic_division_decomposed(lhs, multiplicativeinverse(rhs), Val{lattice}, OT)
+    flip_inverted!(dc_b)
+    (invert, dc_a.epoch, dc_a.lvalue) = algorithmic_division_decomposed(dc_a, dc_b, Val{lattice}, OT)
     invert && flip_inverted!(dc_a)
   else
-    (dc_a.epoch, dc_a.lvalue) = algorithmic_multiplication_decomposed(lhs, rhs, Val{lattice}, OT)
+    (dc_a.epoch, dc_a.lvalue) = algorithmic_multiplication_decomposed(dc_a, dc_b, Val{lattice}, OT)
   end
 
-  #next, do the algorithmic addition/subtraction
-  exact_add(dc_a, dc_c, OT)
+  if isexact(a)
+    #next, do the algorithmic addition/subtraction
+    dc_a = exact_add(dc_a, dc_c, Val{lattice}, OT)
+  elseif output == :lower
+    glb!(dc_a)
+    dc_a = exact_add(dc_a, dc_c, Val{lattice}, OT)
+    upper_ulp!(dc_a)
+  else #output == :upper
+    lub!(dc_a)
+    dc_a = exact_add(dc_a, dc_c, Val{lattice}, OT)
+    lower_ulp!(dc_a)
+  end
 
-  synthesize(dc_a)
+  synthesize(PTile{lattice, epochbits}, dc_a)
 end
 
 @generated function inexact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
@@ -41,14 +82,10 @@ end
       mul_res_sign = isnegative(a) $ isnegative(b)
       #if the result is negative, the lower value will be the outer values for both
       #if the result is positive, the lower value will result from the inner values for both.
-      a_bound = mul_res_sign $ isnegative(a) ? lub(a) : glb(a)
-      b_bound = mul_res_sign $ isnegative(b) ? lub(b) : glb(b)
+      a_bound = (mul_res_sign $ isnegative(a)) ? lub(a) : glb(a)
+      b_bound = (mul_res_sign $ isnegative(b)) ? lub(b) : glb(b)
 
-      upperulp(exact_fma(
-        a_bound,
-        b_bound,
-        glb(c),
-        OT))
+      upperulp(check_exact_fma(a_bound, b_bound, glb(c), OT))
     end
   else #output == :upper
     quote
@@ -56,14 +93,10 @@ end
       mul_res_sign = isnegative(a) $ isnegative(b)
       #if the result is negative, the upper value will result from the inner values for both
       #if the result is positive, the upper value will result from the outer values for both.
-      a_bound = mul_res_sign $ isnegative(a) ? glb(a) : lub(a)
-      b_bound = mul_res_sign $ isnegative(b) ? glb(b) : lub(b)
+      a_bound = (mul_res_sign $ isnegative(a)) ? glb(a) : lub(a)
+      b_bound = (mul_res_sign $ isnegative(b)) ? glb(b) : lub(b)
 
-      lowerulp(exact_fma(
-        a_bound,
-        b_bound,
-        lub(c),
-        OT)))
+      lowerulp(checked_exact_fma(a_bound, b_bound, lub(c), OT))
     end
   end
 end
@@ -73,6 +106,14 @@ end
   (isempty(a) || isempty(b) || isempty(c)) && (set_empty!(res); return)
   (ispreals(a) || ispreals(b) || ispreals(c)) && (set_preals!(acc); return)
   #check on special cases for multiplication:
+
+  # if c contains inf, it may result in "erasure" of wraparound property from
+  # a multiplied a/b result.
+  if containsinf(c) && (containsinf(a) || containsinf(b))
+    #do a multiplication test.
+    mul!(res, a, b)
+    ispreals(res) && return
+  end
 
   if issingle(a)
     single_fma!(res, a, b, c)
@@ -92,17 +133,173 @@ end
 end
 
 @pfunction function single_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
+  set_double!(res)
+
+  if issingle(b) #b is a single tile.
+
+    #some special cases:  a or b is zero.
+    if is_zero(a.lower)
+      is_inf(b.lower) && (set_preals!(res); return)
+      (res.lower = zero(T); set_single!(res); return)
+    end
+
+    if is_zero(b.lower)
+      is_inf(a.lower) && (set_preals!(res); return)
+      (res.lower = zero(T); set_single!(res); return)
+    end
+
+    is_inf(a.lower) && (res.lower = inf(T); set_single!(res); return)
+    is_inf(b.lower) && (res.lower = inf(T); set_single!(res); return)
+
+    set_double!(res)
+
+    c_upper_proxy = issingle(a) ? c.lower : c.upper
+    res.lower = fma(a.lower, b.lower, c.lower, __LOWER)
+    res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+
+    #although we know that the product of two tiles must be on the same half
+    #of the real number line, we must consider if the added part might wind
+    #up as all real numbers, which can happen if the starting bit contains inf.
+    #note that containsinf is a property which is invariant under addition.
+    if (containsinf(c))
+      (@s (prev(res.lower))) <= (@s res.upper) && (set_preals!(res); return)
+    end
+  else  #b is a multi-tile interval.
+    #check if we have a zero/inf situation
+    if (is_zero(a.lower) && containsinf(b)) || (is_inf(a.lower) && containszero(b))
+      set_preals!(res)
+      return
+    end
+
+    #do a simple multiplication.  This could result in going round the horn.
+    set_double!(res)
+
+    c_upper_proxy = issingle(c) ? c.lower : c.upper
+    res.lower = fma(a.lower, b.lower, c.lower, __LOWER)
+    res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+
+    #although we know that the product of two tiles must be on the same half
+    #of the real number line, we must consider if the added part might wind
+    #up as all real numbers, which can happen if the starting bit contains inf.
+    #note that containsinf is a property which is invariant under tile
+    #multiplication and addition.
+    if (containsinf(b) || containsinf(c))
+      (@s (prev(res.lower))) <= (@s res.upper) && (set_preals!(res); return)
+    end
+  end
+
+  (res.lower == res.upper) ? set_single!(res) : set_double!(res)
 end
 
+
+doc"""
+  Unum2.inf_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
+
+  performs a fused multiply-add on two PBounds, placing the result into the res
+  value.  a is guaranteed to be a "double" element that "containsinf", which
+  according to our definition, either has infnity as the upper or lower element,
+  or has its upper element less than its lower element (going 'round the horn'
+  on the projective reals).
+"""
 @pfunction function inf_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
-  nothing
+  set_double!(res)
+
+  if containszero(b)
+    #check to see if the rhs contains zero in any way, which will instantly
+    #trigger the result to be all projective reals.
+    set_preals!(res)
+  elseif containszero(a)
+    #it's possible for the value to round both infinity AND zero.
+
+    #check if we have an infinite-valued rhs, which triggers preals.
+    containsinf(b) && (set_preals!(res); return)
+
+    #at this juncture, the value a must round both zero and infinity, and
+    #the value rhs must be a standard, nonflipped double interval that is only on
+    #one side of zero.
+
+    _state = isnegative(a) * 1 + isnegative(b) * 2
+
+    c_upper_proxy = issingle(c) ? c.lower : c.upper
+
+    #assign upper and lower values based on the bounds
+    if (_state == 0)
+      res.lower = fma(a.lower, b.lower, c.lower, __LOWER)
+      res.upper = fma(a.upper, b.upper, c_upper_proxy, __UPPER)
+    elseif (_state == 1)
+      res.lower = fma(a.upper, b.lower, c.lower, __LOWER)
+      res.upper = fma(a.lower, b.upper, c_upper_proxy, __UPPER)
+    elseif (_state == 2)
+      res.lower = fma(a.upper, b.lower, c.lower, __LOWER)
+      res.upper = fma(a.lower, b.upper, c_upper_proxy, __UPPER)
+    else   #state == 3
+      res.lower = fma(a.upper, b.upper, c.lower, __LOWER)
+      res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+    end
+
+    #check two cases: if the result has "flipped around" and now need to be
+    #represented by all reals.
+    (@s prev(res.lower)) <= (@s res.upper) && (set_preals!(res); return)
+  elseif containsinf(b)  #now we must check if rhs rounds infinity.
+    #like the double "rounds zero" case, we have to check four possible endpoints.
+    zero_check = containszero(b) || containsinf(c)
+
+    c_upper_proxy = issingle(c) ? c.lower : c.upper
+    _l1 = is_inf(a.lower) | is_inf(b.lower) ? inf(T) : fma(a.lower, b.lower, c.lower, __LOWER)
+    _l2 = is_inf(a.upper) | is_inf(b.upper) ? inf(T) : fma(a.upper, b.upper, c.lower, __LOWER)
+    _u1 = is_inf(a.lower) | is_inf(b.upper) ? inf(T) : fma(a.lower, b.upper, c_upper_proxy, __UPPER)
+    _u2 = is_inf(a.upper) | is_inf(b.lower) ? inf(T) : fma(a.upper, b.lower, c_upper_proxy, __UPPER)
+
+    #construct the result.
+    res.lower = min(_l1, _l2)
+    res.upper = max(_l1, _l2)
+
+    #check for wraparound to allreals.
+    if (zero_check)
+      (@s prev(res.lower)) <= (@s res.upper) && (set_preals!(res); return)
+    end
+  else
+    #the last case is if a rounds infinity but b is a "well-behaved" value.
+    #canonical example:
+
+    c_upper_proxy = issingle(c) ? c.lower : c.upper
+
+    if isnegative(b)
+      res.lower = is_inf(a.upper) ? inf(T) : fma(a.upper, b.upper, c.lower, __LOWER)
+      res.upper = is_inf(a.lower) ? inf(T) : fma(a.lower, b.upper, c_upper_proxy, __UPPER)
+    else
+      res.lower = is_inf(a.lower) ? inf(T) : fma(a.lower, b.lower, c.lower, __LOWER)
+      res.upper = is_inf(a.upper) ? inf(T) : fma(a.upper, b.lower, c_upper_proxy, __UPPER)
+    end
+  end
+
+  (res.lower == res.upper) && set_single!(res)
 end
 
 @pfunction function zero_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
-  nothing
+  set_double!(res)
+  c_upper_proxy = issingle(c) ? c.lower : c.upper
+
+  if __simple_roundszero(b)
+    # when rhs spans zero, we have to check four possible endpoints.
+    res.lower = min(fma(a.lower, b.upper, c.lower, __LOWER), fma(a.upper, b.lower, c.lower, __LOWER))
+    res.upper = max(fma(a.lower, b.lower, c_upper_proxy, __UPPER), fma(a.upper, b.upper, c_upper_proxy, __UPPER))
+
+    # in the case where the rhs doesn't span zero, we must only multiply by the
+    # extremum.
+  elseif ispositive(rhs.lower)
+    res.lower = fma(a.lower, b.upper, c.lower, __LOWER)
+    res.upper = fma(a.upper, b.upper, c_upper_proxy, __UPPER)
+  else #rhs must be negative
+    res.lower = fma(a.upper, b.lower, c.lower, __LOWER)
+    res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+  end
+
+  (res.lower == res.upper) && set_single!(res)
 end
 
 @pfunction function std_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
+  set_double!(res)
   #decide if the multiplication result will be positive or negative.
   mul_res_sign = isnegative(a.lower) $ isnegative(b.lower)
   #if the result is negative, the lower value will be the outer values for both
@@ -116,5 +313,4 @@ end
   res.upper = fma(a_upper_component, b_upper_component, c_upper_proxy)
 
   (res.lower == res.upper) && set_single!(res)
-  res
 end

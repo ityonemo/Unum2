@@ -84,8 +84,6 @@ doc"""
 
     is_inf(lhs.lower) && (acc.lower = inf(T); set_single!(acc); return)
     is_inf(rhs.lower) && (acc.lower = inf(T); set_single!(acc); return)
-    is_zero(lhs.lower) && (acc.lower = zero(T); set_single!(acc); return)
-    is_zero(rhs.lower) && (acc.lower = zero(T); set_single!(acc); return)
 
     set_double!(acc)
 
@@ -96,12 +94,19 @@ doc"""
 
     (acc.lower == acc.upper) ? set_single!(acc) : set_double!(acc)
   else
-    if (is_zero(lhs.lower) && containsinf(rhs)) || (is_inf(lhs.lower) && containszero(rhs))
+    infcheck = containsinf(rhs)
+
+    if (is_zero(lhs.lower) && infcheck) || (is_inf(lhs.lower) && containszero(rhs))
       set_preals!(acc)
       return
     end
+
     acc.lower = mul(lhs.lower, rhs.lower, __LOWER)
     acc.upper = mul(lhs.lower, rhs.upper, __UPPER)
+
+    if infcheck
+      (@s (prev(acc.lower))) <= (@s acc.upper) && (set_preals!(acc); return)
+    end
 
     (acc.lower == acc.upper) ? set_single!(acc) : set_double!(acc)
   end
@@ -154,15 +159,15 @@ doc"""
       _u = mul(lhs.lower, rhs.lower, __UPPER)
     end
 
-    #check two cases: if the result has "flipped around" and now need to be
-    #represented by all reals.
-    (@s _l) <= (@s _u) && (set_preals!(acc); return)
-    (next(_u) == _l) && (set_preals!(acc); return)
-
     acc.lower = _l
     acc.upper = _u
+
+    #check for wraparound to allreals.
+    (@s prev(acc.lower)) <= (@s acc.upper) && (set_preals!(acc); return)
   elseif containsinf(rhs)  #now we must check if rhs rounds infinity.
     #like the double "rounds zero" case, we have to check four possible endpoints.
+    zero_check = containszero(rhs)
+
     _l1 = is_inf(lhs.lower) | is_inf(rhs.lower) ? inf(T) : mul(lhs.lower, rhs.lower, __LOWER)
     _l2 = is_inf(lhs.upper) | is_inf(rhs.upper) ? inf(T) : mul(lhs.upper, rhs.upper, __LOWER)
     _u1 = is_inf(lhs.lower) | is_inf(rhs.upper) ? inf(T) : mul(lhs.lower, rhs.upper, __UPPER)
@@ -171,20 +176,25 @@ doc"""
     #construct the result.
     acc.lower = min(_l1, _l2)
     acc.upper = max(_l1, _l2)
+
+    #check for wraparound to allreals.
+    if (zero_check)
+      (@s prev(acc.lower)) <= (@s acc.upper) && (set_preals!(acc); return)
+    end
   else  #the last case is if lhs rounds infinity but rhs is a "well-behaved" value.
     #canonical example:
     # (2, -3) * (5, 7) -> (10, -15)
     # (2, -3) * (-7, -5) -> (15, -10)
 
     if isnegative(rhs)
-      _l = is_inf(lhs.upper) | is_inf(rhs.upper) ? inf(T) : mul(lhs.upper, rhs.upper, __LOWER)
-      _u = is_inf(lhs.lower) | is_inf(rhs.lower) ? inf(T) : mul(lhs.lower, rhs.upper, __UPPER)
+      _l = is_inf(lhs.upper) ? inf(T) : mul(lhs.upper, rhs.upper, __LOWER)
+      _u = is_inf(lhs.lower) ? inf(T) : mul(lhs.lower, rhs.upper, __UPPER)
 
       acc.lower = _l
       acc.upper = _u
     else
-      acc.lower = is_inf(lhs.lower) | is_inf(rhs.lower) ? inf(T) : mul(lhs.lower, rhs.lower, __LOWER)
-      acc.upper = is_inf(lhs.upper) | is_inf(rhs.upper) ? inf(T) : mul(lhs.upper, rhs.lower, __UPPER)
+      acc.lower = is_inf(lhs.lower) ? inf(T) : mul(lhs.lower, rhs.lower, __LOWER)
+      acc.upper = is_inf(lhs.upper) ? inf(T) : mul(lhs.upper, rhs.lower, __UPPER)
     end
   end
 end

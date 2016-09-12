@@ -59,8 +59,7 @@ end
     # invariant under addition.  Losing this property suggests that the answer
     # should be recast as "allreals."  While we're at it, check to see if the
     # answer ends now "touch", which makes them "allreals".
-    (@s acc.lower) <= (@s acc.upper) && (set_preals!(acc); return)
-    (next(acc.upper) == acc.lower) && (set_preals!(acc); return)
+    (@s (prev(acc.lower))) <= (@s acc.upper) && (set_preals!(acc); return)
   end
 
   (acc.upper == acc.lower) && set_single!(acc)
@@ -116,7 +115,7 @@ end
 function exact_add{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
   (big, sml) = magbigger(lhs, rhs) ? (lhs, rhs) : (rhs, lhs)
 
-  exact_add_sorted(lhr, rhs, L, OT)
+  exact_add_sorted(lhs, rhs, L, OT)
 end
 
 function magbigger(lhs::__dc_tile, rhs::__dc_tile)

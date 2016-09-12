@@ -14,14 +14,16 @@ import Base.-
 @pfunction function -(lhs::PBound, rhs::PBound)
   #encapuslates calling the more efficient "add" function, which does not need
   #to allocate memory.
-  res::B = copy(rhs)
+  res::B = emptyset(B)
+  copy!(res, rhs)
   additiveinverse!(res)
   add!(res, lhs)
   res
 end
 
 @pfunction function -(x::PBound)
-  res::B = copy(x)
+  res::B = emptyset(B)
+  copy!(res, x)
   additiveinverse!(res)
   res
 end
