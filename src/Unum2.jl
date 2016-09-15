@@ -25,4 +25,6 @@ include("math/xadd.jl")
 
 include("h-layer.jl")
 
+include("rationalarray.jl")
+
 end # module

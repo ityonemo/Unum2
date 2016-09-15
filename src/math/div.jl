@@ -72,44 +72,35 @@ end
   #same direction (out or in) relative to one.
   div_table = table_name(lattice, :div)
   inv_table = table_name(lattice, :inv)
+  div_inv_table = table_name(lattice, :div_inv)
 
   #create the multiplication table, if necessary.
   isdefined(Unum2, div_table) || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
   quote
+    res_epoch = lhs.epoch - rhs.epoch - ((lhs.lvalue < rhs.lvalue) * 1)
 
-    res_epoch = lhs.epoch - rhs.epoch
+    res_inverted = res_epoch < 0
 
-    if lhs.lvalue == zero(UT_Int)
-      if (rhs.lvalue == 0)
-        res_lvalue = 0
-      else
-        res_lvalue = $inv_table[rhs.lvalue >> 1]
-      end
-      res_epoch -= 1
-    elseif rhs.lvalue == zero(UT_Int)
-      res_lvalue = lhs.lvalue
-    else
-      #do a lookup.
-      res_lvalue = $div_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
-      #check to see if we need to go to a lower epoch.
-      (res_lvalue > lhs.lvalue) && (res_epoch -= 1)
-    end
-
-
-    res_inverted = false
-    #may need to reverse the orientation on the result.
-    if (res_epoch < 0)
+    if res_inverted
       res_inverted = true
       res_epoch = (-res_epoch) - 1
-      #invert the value.
-      if (res_lvalue == 0)
-        #a diagram illustrating the relationship here.... (example, 2-bit lattice)
-        #0 1 2 3|0 1 2 3|0 1 2 3
-        #  3 2 1 0|3 2 1 0
-        res_epoch += 1
+
+      if (rhs.lvalue == 0)
+        res_lvalue = $inv_table[lhs.lvalue >> 1]
+      elseif (lhs.lvalue == 0)
+        res_lvalue = rhs.lvalue
       else
-        res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+        res_lvalue = $div_inv_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
+      end
+      (res_lvalue == 0) && (res_epoch += 1)
+    else
+      if (rhs.lvalue == 0)
+        res_lvalue = lhs.lvalue
+      elseif (lhs.lvalue == 0)
+        res_lvalue = $inv_table[rhs.lvalue >> 1]
+      else
+        res_lvalue = $div_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
       end
     end
 
@@ -121,13 +112,15 @@ end
 #generate and use the new symbol.
 @generated function create_division_table{lattice}(::Type{Val{lattice}})
   div_table = table_name(lattice, :div)
+  div_inv_table = table_name(lattice, :div_inv)
   quote
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
     stride_value = __MASTER_STRIDE_LIST[lattice]
     l = length(lattice_values)
     #allocate the memory for the matrix.
-    global const $div_table = Matrix{UInt64}(l, l)
+    global const $div_table = Matrix{UT_Int}(l, l)
+    global const $div_inv_table = Matrix{UT_Int}(l, l)
 
     for idx = 1:l
       for idx2 = 1:l
@@ -136,6 +129,9 @@ end
         (true_value < 1) && (true_value *= stride_value)
 
         $div_table[idx, idx2] = @i search_lattice(lattice_values, true_value)
+
+        $div_inv_table[idx, idx2] = (true_value == 1) ? UT_Int(0) :
+          @i search_lattice(lattice_values, stride_value / true_value)
       end
     end
   end

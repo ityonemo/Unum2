@@ -44,6 +44,7 @@ end
 
 floatval(x::AbstractFloat) = BigFloat(x)
 floatval(n::Integer) = BigFloat(n)
+floatval(r::Rational) = BigFloat(r)
 #each lattice should implement precompiled value functions which correspond to your
 #favorite symbols.
 floatval(s::Symbol) = floatval(Val{s})
@@ -104,7 +105,8 @@ const __LATTICE_DICT = Dict{Symbol, ASCIIString}(
   :PFloat4 => "four-bit-lattice.jl",
   :PFloat5 => "five-bit-lattice.jl",
   :PFloat5e => "five-bit-epoch-lattice.jl",
-  :PFloat6 => "six-bit-lattice.jl"
+  :PFloat6 => "six-bit-lattice.jl",
+  :PFloatD1 => "decimal-lattice.jl"
 )
 
 function import_lattice(l)

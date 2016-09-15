@@ -2,6 +2,7 @@
 
 @pfunction function Base.fma(a::PBound,b::PBound,c::PBound)
   res = emptyset(B)
+  println("fma: $a $b $c")
   fma!(res, a, b, c)
   res
 end
