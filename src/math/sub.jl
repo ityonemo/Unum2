@@ -53,17 +53,17 @@ end
 # ALGORITHMIC SUBTRACTION
 ################################################################################
 
-function exact_algorithmic_subtraction{lattice, output}(big::__dc_tile, sml::__dc_tile,  L::Type{Val{lattice}}, OT::Type{Val{output}})
+function exact_algorithmic_subtraction{lattice}(big::__dc_tile, sml::__dc_tile,  L::Type{Val{lattice}})
   #first, we should sort the two numbers into high
   res::__dc_tile = big
 
   if is_uninverted(big) && is_uninverted(sml) #sub a non-inverted value from a non-inverted value.
-    (invert, res.epoch, res.lvalue) = uninverted_subtraction_decomposed(big, sml, Val{lattice}, OT)
+    (invert, res.epoch, res.lvalue) = uninverted_subtraction_decomposed(big, sml, Val{lattice})
     invert && set_inverted!(res)
   elseif (is_inverted(big) && is_inverted(sml))   #sub an inverted value from an inverted value.
-    (res.epoch, res.lvalue) = inverted_subtraction_decomposed(big, sml, Val{lattice}, OT)
+    (res.epoch, res.lvalue) = inverted_subtraction_decomposed(big, sml, Val{lattice})
   else
-    (invert, res.epoch, res.lvalue) = crossed_subtraction_decomposed(big, sml, Val{lattice}, OT)
+    (invert, res.epoch, res.lvalue) = crossed_subtraction_decomposed(big, sml, Val{lattice})
     invert && set_inverted!(res)
   end
 
@@ -72,41 +72,58 @@ end
 
 lattice_length(l::Symbol) = length(__MASTER_LATTICE_LIST[l])
 
-@generated function uninverted_subtraction_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile,  L::Type{Val{lattice}}, OT::Type{Val{output}})
+@generated function uninverted_subtraction_decomposed{lattice}(big::__dc_tile, sml::__dc_tile,  L::Type{Val{lattice}})
   sub_table             = table_name(lattice, :sub)
+  inv_sub_table         = table_name(lattice, :inv_sub)
   sub_epoch_table       = table_name(lattice, :sub_epoch)
   isdefined(Unum2, sub_table)       || create_uninverted_subtraction_tables(Val{lattice})
   max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) + 1
   quote
+
     #NB:  move this to be a precompiled value instead of a calculated value.
     cells = size($sub_table, 1)
     lookup_cell = big.epoch - sml.epoch + 1
 
-    #for now, only support adding things that are in the same epoch.
-    if lookup_cell <= cells
-      res_lvalue = $sub_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
-      res_epoch = @s(big.epoch) - @s($sub_epoch_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1])
-    elseif (big.lvalue != 0)
-      res_epoch = big.epoch
-      res_lvalue = big.lvalue - 1
-    else
-      res_epoch = big.epoch - 1
-      res_lvalue = $max_lvalue
+    #in the case that we don't have enough cells to cover this, we simply
+    #bump down the value to the next lower ulp.
+    if lookup_cell > cells
+
+      res_inverted = false
+
+      if (big.lvalue == 0)
+        if (big.epoch == 0)
+          res_inverted = true
+          res_epoch = 0
+          res_lvalue = one(UT_Int)
+        else
+          res_epoch = big.epoch - 1
+          res_lvalue = $max_lvalue
+        end
+      else
+        res_epoch = big.epoch
+        res_lvalue = big.lvalue - 1
+      end
+
+      return (res_inverted, res_epoch, res_lvalue)
     end
 
-    #may need to reverse the orientation on the result.
-    res_inverted = false
-    if (res_epoch < 0)
-      res_inverted = true
+    res_epoch = @s(big.epoch) - $sub_epoch_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+
+    res_inverted = res_epoch < 0
+
+    if res_inverted
       res_epoch = (-res_epoch) - 1
-      res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+
+      res_lvalue = $inv_sub_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+    else
+      res_lvalue = $sub_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
     end
 
     (res_inverted, res_epoch, res_lvalue)
   end
 end
 
-@generated function inverted_subtraction_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}},  OT::Type{Val{output}})
+@generated function inverted_subtraction_decomposed{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
   sub_inv_table         = table_name(lattice, :sub_inv)
   sub_inv_epoch_table   = table_name(lattice, :sub_inv_epoch)
   isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_tables(Val{lattice})
@@ -127,10 +144,11 @@ end
   end
 end
 
-@generated function crossed_subtraction_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}},  OT::Type{Val{output}})
+@generated function crossed_subtraction_decomposed{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
 
   #first figure out the epoch reduction limit
   sub_cross_table       = table_name(lattice, :sub_cross)
+  inv_sub_cross_table   = table_name(lattice, :inv_sub_cross)
   sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
   #create the inversion table table, if necessary.
   isdefined(Unum2, sub_cross_table) || create_crossed_subtraction_tables(Val{lattice})
@@ -141,56 +159,41 @@ end
     cells = size($sub_cross_table, 1)
     lookup_cell = big.epoch + sml.epoch + 1
 
-    if lookup_cell <= cells
-      res_lvalue = $sub_cross_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
-      res_epoch = @s(big.epoch) - @s($sub_cross_epoch_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1])
-    elseif (big.lvalue != 0)
-      res_epoch = big.epoch
-      res_lvalue = big.lvalue - 1
-    else
-      res_epoch = big.epoch - 1
-      res_lvalue = $max_lvalue
+    #in the case that we don't have enough cells to cover this, we simply
+    #bump down the value to the next lower ulp.
+    if lookup_cell > cells
+      res_inverted = false
+
+      if (big.lvalue == 0)
+        if (big.epoch == 0)
+          res_inverted = true
+          res_epoch = 0
+          res_lvalue = one(UT_Int)
+        else
+          res_epoch = big.epoch - 1
+          res_lvalue = $max_lvalue
+        end
+      else
+        res_epoch = big.epoch
+        res_lvalue = big.lvalue - 1
+      end
+
+      return (res_inverted, res_epoch, res_lvalue)
     end
 
-    res_inverted = false
+    res_epoch = @s(big.epoch) - $sub_cross_epoch_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
 
-    if (res_epoch < 0)
-      res_inverted = true
+    res_inverted = res_epoch < 0
+
+    if res_inverted
       res_epoch = (-res_epoch) - 1
-      res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+
+      res_lvalue = $inv_sub_cross_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
+    else
+      res_lvalue = $sub_cross_table[lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1]
     end
 
     (res_inverted, res_epoch, res_lvalue)
-  end
-end
-
-################################################################################
-# LATTICE INVERSION
-################################################################################
-
-bumpup(x) = iseven(x) ? (x + 0x0000_0000_0000_0001) : x
-bumpdn(x) = iseven(x) ? (x - 0x0000_0000_0000_0001) : x
-
-@generated function lattice_invert{lattice, output}(value, L::Type{Val{lattice}}, OT::Type{Val{output}})
-  inv_table             = table_name(lattice, :inv)
-  isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
-  mval = (lattice_length(lattice) * 2) + 1
-  if (output == :lower)  || (output == :inner)
-    quote
-      if iseven(value)
-        $inv_table[value >> 1]
-      else
-        value == $mval ? one(ST_Int) : bumpup($inv_table[value >> 1 + 1])
-      end
-    end
-  elseif (output == :upper) || (output == :outer)
-    quote
-      if iseven(value)
-        $inv_table[value >> 1]
-      else
-        value == 1 ? $mval : bumpdn($inv_table[value >> 1])
-      end
-    end
   end
 end
 
@@ -209,12 +212,12 @@ function search_epochs(true_value, stride_value)
 
   epoch_delta = 0
   while (true_value < 1.0)
+
     true_value *= stride_value
     epoch_delta += 1
   end
   return (epoch_delta, true_value)
 end
-
 doc"""
   Unum2.search_epochs_inverted(value, stride)
   takes a value in (0 1) and normalizes it to the range [1 stride) with an
@@ -240,6 +243,7 @@ end
 @generated function create_uninverted_subtraction_tables{lattice}(::Type{Val{lattice}})
   sub_table       = table_name(lattice, :sub)
   sub_epoch_table = table_name(lattice, :sub_epoch)
+  inv_sub_table   = table_name(lattice, :inv_sub)
   #we need two tables, the subtraction table and the subtraction epoch table.
   quote
     cells = count_uninverted_subtraction_cells(Val{lattice}) + 1
@@ -252,15 +256,16 @@ end
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
     global const $sub_table = Array(UT_Int, cells, l + 1, l + 1)
+    global const $inv_sub_table = Array(UT_Int, cells, l + 1, l + 1)
     global const $sub_epoch_table = Array(ST_Int, cells, l + 1, l + 1)
 
     for sub_cell = 1:cells
-      populate_uninverted_subtraction_table!($sub_table, $sub_epoch_table, lattice_values, stride_value, sub_cell - 1)
+      populate_uninverted_subtraction_table!($sub_table, $inv_sub_table, $sub_epoch_table, lattice_values, stride_value, sub_cell - 1)
     end
   end
 end
 
-function populate_uninverted_subtraction_table!(table, epoch_table, lattice_values, stride_value, epoch_delta)
+function populate_uninverted_subtraction_table!(table, inv_table, epoch_table, lattice_values, stride_value, epoch_delta)
   l = length(lattice_values)
   power_factor = stride_value ^ epoch_delta
 
@@ -271,10 +276,12 @@ function populate_uninverted_subtraction_table!(table, epoch_table, lattice_valu
       #decompose the result into an epoch and a
       (res_epoch_delta, true_value) = search_epochs(true_value / power_factor, stride_value)
       table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
+      inv_table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, stride_value / true_value)
       epoch_table[epoch_delta + 1, idx + 1, idx2 + 1] = @s res_epoch_delta
     else
-      table[1, idx + 1, idx2 + 1] = 0xFFFF_FFFF_FFFF_FFFF
-      epoch_table[1, idx + 1, idx2 + 1] = @s 0xFFFF_FFFF_FFFF_FFFF
+      table[1, idx + 1, idx2 + 1]       = @i -1
+      inv_table[1, idx + 1, idx2 + 1]   = @i -1
+      epoch_table[1, idx + 1, idx2 + 1] = @s -1
     end
   end
 end
@@ -325,6 +332,7 @@ end
 
 @generated function create_crossed_subtraction_tables{lattice}(::Type{Val{lattice}})
   sub_cross_table       = table_name(lattice, :sub_cross)
+  inv_sub_cross_table   = table_name(lattice, :inv_sub_cross)
   sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
   #we need two tables, the subtraction table and the subtraction epoch table.
   quote
@@ -338,21 +346,24 @@ end
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
     global const $sub_cross_table = Array(UT_Int, sub_cross_cells, l + 1, l + 1)
+    global const $inv_sub_cross_table = Array(UT_Int, sub_cross_cells, l + 1, l + 1)
     global const $sub_cross_epoch_table = Array(ST_Int, sub_cross_cells, l + 1, l + 1)
 
     for sub_cross_cell = 1:sub_cross_cells
-      populate_crossed_subtraction_table!($sub_cross_table, $sub_cross_epoch_table, lattice_values, stride_value, 0)#sub_cross_cell - 1)
+      populate_crossed_subtraction_table!($sub_cross_table, $inv_sub_cross_table, $sub_cross_epoch_table, lattice_values, stride_value, sub_cross_cell - 1)
     end
   end
 end
 
-function populate_crossed_subtraction_table!(table, epoch_table, lattice_values, stride_value, epoch_delta)
+function populate_crossed_subtraction_table!(table, inv_table, epoch_table, lattice_values, stride_value, epoch_delta)
   l = length(lattice_values)
   power_factor = stride_value ^ epoch_delta
 
   for idx = 0:l, idx2 = 0:l
+
     if (epoch_delta == 0) && (idx == 0) && (idx2 == 0)
       table[1, idx + 1, idx2 + 1] = 0xFFFF_FFFF_FFFF_FFFF
+      inv_table[1, idx + 1, idx2 + 1] = 0xFFFF_FFFF_FFFF_FFFF
       epoch_table[1, idx + 1, idx2 + 1] = @s 0xFFFF_FFFF_FFFF_FFFF
     else
       true_value = (power_factor * ((idx == 0) ? 1 : lattice_values[idx])) -
@@ -360,6 +371,7 @@ function populate_crossed_subtraction_table!(table, epoch_table, lattice_values,
       #decompose the result into an epoch and a
       (res_epoch_delta, true_value) = search_epochs(true_value / power_factor, stride_value)
       table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value)
+      inv_table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, stride_value / true_value)
       epoch_table[epoch_delta + 1, idx + 1, idx2 + 1] = @s res_epoch_delta
     end
   end

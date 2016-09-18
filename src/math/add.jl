@@ -90,7 +90,7 @@ doc"""
 
     if isexact(lhs) & isexact(rhs)
       (rhs == -lhs) && return zero(PTile{lattice, epochbits})
-      exact_add(lhs, rhs, OT)
+      exact_add(lhs, rhs)
     else
       inexact_add(lhs, rhs, OT)
     end
@@ -98,24 +98,23 @@ doc"""
 end
 
 #sometimes you need to double check it's not a special value.
-function checked_exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function checked_exact_add{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
   is_zero(lhs) && return rhs
   is_zero(rhs) && return lhs
   (rhs == -lhs) && return zero(PTile{lattice, epochbits})
 
-  exact_add(lhs, rhs, OT)
+  exact_add(lhs, rhs)
 end
 
-function exact_add{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function exact_add{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
   (big, sml) = abs(lhs) > abs(rhs) ? (decompose(lhs), decompose(rhs)) : (decompose(rhs), decompose(lhs))
 
-  synthesize(PTile{lattice, epochbits}, exact_add_sorted(big, sml, Val{lattice}, OT))
+  synthesize(PTile{lattice, epochbits}, exact_add_sorted(big, sml, Val{lattice}))
 end
 
-function exact_add{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+function exact_add{lattice}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}})
   (big, sml) = magbigger(lhs, rhs) ? (lhs, rhs) : (rhs, lhs)
-
-  exact_add_sorted(big, sml, L, OT)
+  exact_add_sorted(big, sml, L)
 end
 
 function magbigger(lhs::__dc_tile, rhs::__dc_tile)
@@ -128,26 +127,26 @@ function magbigger(lhs::__dc_tile, rhs::__dc_tile)
   return !lhs_inverted
 end
 
-function exact_add_sorted{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+function exact_add_sorted{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
 
   subtraction = is_negative(big) $ is_negative(sml)
 
   if (subtraction)
     #for now, only support adding a non-inverted value to a non-inverted value.
-    res = exact_algorithmic_subtraction(big, sml, Val{lattice}, OT)
+    exact_algorithmic_subtraction(big, sml, Val{lattice})
   else
-    res = exact_algorithmic_addition(big, sml, Val{lattice}, OT)
+    exact_algorithmic_addition(big, sml, Val{lattice})
   end
 end
 
 @generated function inexact_add{lattice, epochbits, output}(x::PTile{lattice, epochbits}, y::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
     quote
-      (is_neg_many(x) || is_neg_many(y)) ? neg_many(PTile{lattice, epochbits}) : upperulp(checked_exact_add(glb(x), glb(y), OT))
+      (is_neg_many(x) || is_neg_many(y)) ? neg_many(PTile{lattice, epochbits}) : upperulp(checked_exact_add(glb(x), glb(y)))
     end
   elseif output == :upper
     quote
-      (is_pos_many(x) || is_pos_many(y)) ? pos_many(PTile{lattice, epochbits}) : lowerulp(checked_exact_add(lub(x), lub(y), OT))
+      (is_pos_many(x) || is_pos_many(y)) ? pos_many(PTile{lattice, epochbits}) : lowerulp(checked_exact_add(lub(x), lub(y)))
     end
   end
 end
@@ -156,23 +155,23 @@ end
 # ALGORITHMIC ADDITION
 ################################################################################
 
-function exact_algorithmic_addition{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+function exact_algorithmic_addition{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
   res::__dc_tile = big
 
   if is_uninverted(big) && is_uninverted(sml) #add a non-inverted value to a non-inverted value.
-    (res.epoch, res.lvalue) = uninverted_addition_decomposed(big, sml, Val{lattice}, OT)
+    (res.epoch, res.lvalue) = uninverted_addition_decomposed(big, sml, Val{lattice})
   elseif (is_inverted(big) && is_inverted(sml))   #add an inverted value to an inverted value.
-    (invert, res.epoch, res.lvalue) = inverted_addition_decomposed(big, sml, Val{lattice}, OT)
+    (invert, res.epoch, res.lvalue) = inverted_addition_decomposed(big, sml, Val{lattice})
     invert && set_uninverted!(res)
   else #add two values which are crossed.
-    (res.epoch, res.lvalue) = crossed_addition_decomposed(big, sml, Val{lattice}, OT)
+    (res.epoch, res.lvalue) = crossed_addition_decomposed(big, sml, Val{lattice})
   end
 
   res
 end
 
 #perform the calculation of uninverted addition using partial (decomposed) values.
-@generated function uninverted_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+@generated function uninverted_addition_decomposed{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
 
   #ensure that the requisite tables exist.
   add_table = table_name(lattice, :add)
@@ -197,10 +196,12 @@ end
 end
 
 #perform the calculation of inverted addition using partial (decomposed) values.
-@generated function inverted_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+@generated function inverted_addition_decomposed{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
 
   #ensure that the requisite tables exist.
-  add_inv_table = table_name(lattice, :add_inv)
+  add_inv_table     = table_name(lattice, :add_inv)
+  inv_add_inv_table = table_name(lattice, :inv_add_inv)
+
   isdefined(Unum2, add_inv_table) || create_inverted_addition_tables(Val{lattice})
   max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) + 1
   quote
@@ -222,15 +223,15 @@ end
     res_uninvert = false
     if (res_epoch < 0)
       res_uninvert = true
-      res_epoch = (-res_epoch) - 1
-      res_lvalue = lattice_invert(res_lvalue, Val{lattice}, OT)
+      res_epoch = 0
+      res_lvalue = $inv_add_inv_table[lookup_cell, big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
     end
 
     (res_uninvert, res_epoch, res_lvalue)
   end
 end
 
-@generated function crossed_addition_decomposed{lattice, output}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+@generated function crossed_addition_decomposed{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
 
   #ensure that the requisite tables exist.
   add_cross_table = table_name(lattice, :add_cross)
@@ -306,6 +307,7 @@ end
 
 @generated function create_inverted_addition_tables{lattice}(::Type{Val{lattice}})
   add_inv_table = table_name(lattice, :add_inv)
+  inv_add_inv_table = table_name(lattice, :inv_add_inv)
   quote
     inv_cells = count_uninverted_addition_cells(Val{lattice}) + 1
 
@@ -316,16 +318,17 @@ end
     #actually allocate the memory for the matrix.  We can make easy inferences about
     #some things, because we know that 1 * value == value, and bounds must be bounded
     #by exacts.
-    global const $add_inv_table = Array(UT_Int, inv_cells, l + 1, l + 1)
+    global const $add_inv_table     = Array(UT_Int, inv_cells, l + 1, l + 1)
+    global const $inv_add_inv_table = Array(UT_Int, inv_cells, l + 1, l + 1)
 
     #create all the tables.
     for add_inv_cell = 1:inv_cells
-      populate_inverted_addition_table!($add_inv_table, lattice_values, stride_value, add_inv_cell - 1)
+      populate_inverted_addition_table!($add_inv_table, $inv_add_inv_table, lattice_values, stride_value, add_inv_cell - 1)
     end
   end
 end
 
-function populate_inverted_addition_table!(table, lattice_values, stride_value, epoch_delta)
+function populate_inverted_addition_table!(table, inv_table, lattice_values, stride_value, epoch_delta)
   l = length(lattice_values)
   power_factor = stride_value ^ epoch_delta
   for idx = 0:l, idx2 = 0:l
@@ -334,7 +337,17 @@ function populate_inverted_addition_table!(table, lattice_values, stride_value, 
     #first check to see if the true_value corresponds to the stride value.
     (true_value < power_factor) && (true_value *= stride_value)
 
-    table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, true_value, power_factor)
+    table[epoch_delta + 1, idx + 1, idx2 + 1]     = @i search_lattice(lattice_values, true_value, power_factor)
+
+    #also do the inverted values -> uninverted values
+    uninverted_result = ((idx == 0) ? 1 : 1/lattice_values[idx]) +
+                        ((idx2 == 0) ? (1/power_factor) : (1/(lattice_values[idx2] * power_factor)))
+
+    if (uninverted_result < 1)
+      inv_table[epoch_delta + 1, idx + 1, idx2 + 1] = @i 0xFFFF_FFFF_FFFF_FFFF
+    else
+      inv_table[epoch_delta + 1, idx + 1, idx2 + 1] = @i search_lattice(lattice_values, uninverted_result)
+    end
   end
 end
 

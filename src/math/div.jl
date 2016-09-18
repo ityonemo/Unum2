@@ -54,20 +54,20 @@ end
 # ALGORITHMIC DIVISION
 ################################################################################
 
-function exact_algorithmic_division{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function exact_algorithmic_division{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
   (lhs == rhs) && return one(PTile{lattice, epochbits})
 
   dc_lhs = decompose(lhs)
   dc_rhs = decompose(rhs)
 
-  (invert, dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_division_decomposed(dc_lhs, dc_rhs, Val{lattice}, OT)
+  (invert, dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_division_decomposed(dc_lhs, dc_rhs, Val{lattice})
 
   #reconstitute the result.
   x = synthesize(PTile{lattice, epochbits}, dc_lhs)
   invert ? multiplicativeinverse(x) : x
 end
 
-@generated function algorithmic_division_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}} )
+@generated function algorithmic_division_decomposed{lattice}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}})
   #note that parameters passed to this function will always be pointing in the
   #same direction (out or in) relative to one.
   div_table = table_name(lattice, :div)
@@ -83,7 +83,6 @@ end
     res_inverted = res_epoch < 0
 
     if res_inverted
-      res_inverted = true
       res_epoch = (-res_epoch) - 1
 
       if (rhs.lvalue == 0)
@@ -108,8 +107,7 @@ end
   end
 end
 
-#I didn't want this to be a generated function, but it was the cleanest way to
-#generate and use the new symbol.
+#being a generated function is the cleanest way to generate and use the new symbol.
 @generated function create_division_table{lattice}(::Type{Val{lattice}})
   div_table = table_name(lattice, :div)
   div_inv_table = table_name(lattice, :div_inv)

@@ -300,7 +300,7 @@ function sided_abs_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits
   is_unit(rhs) && return abs(lhs)
 
   if isexact(lhs) & isexact(rhs)
-    exact_mul(abs(lhs), abs(rhs), OT)
+    exact_mul(abs(lhs), abs(rhs))
   else
     inexact_mul(abs(lhs), abs(rhs), OT)
   end
@@ -314,7 +314,7 @@ doc"""
   exact mul using one of the extrema, but allowing for the direct exact mul
   to not have this overhead.
 """
-function checked_exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function checked_exact_mul{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
   is_inf(lhs) && return inf(PTile{lattice, epochbits})
   is_inf(rhs) && return inf(PTile{lattice, epochbits})
   is_zero(lhs) && return zero(PTile{lattice, epochbits})
@@ -322,7 +322,7 @@ function checked_exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epoch
   is_one(rhs) && return lhs
   is_one(lhs) && return rhs
 
-  exact_mul(lhs, rhs, OT)
+  exact_mul(lhs, rhs)
 end
 
 doc"""
@@ -330,19 +330,19 @@ doc"""
 
   perform an exact multiply, reporting the tile on the far left or far right.
 """
-function exact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
+function exact_mul{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
   if (isinverted(lhs) $ isinverted(rhs))
-    exact_algorithmic_division(lhs, multiplicativeinverse(rhs), OT)
+    exact_algorithmic_division(lhs, multiplicativeinverse(rhs))
   else
-    exact_algorithmic_multiplication(lhs, rhs, OT)
+    exact_algorithmic_multiplication(lhs, rhs)
   end
 end
 
 @generated function inexact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
-    :(upperulp(checked_exact_mul(glb(abs(lhs)), glb(abs(rhs)), OT)))
+    :(upperulp(checked_exact_mul(glb(abs(lhs)), glb(abs(rhs)))))
   else #output == :upper
-    :(lowerulp(checked_exact_mul(lub(abs(lhs)), lub(abs(rhs)), OT)))
+    :(lowerulp(checked_exact_mul(lub(abs(lhs)), lub(abs(rhs)))))
   end
 end
 
@@ -350,18 +350,18 @@ end
 # ALGORITHMIC MULTIPLICATION
 ################################################################################
 
-function exact_algorithmic_multiplication{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}} )
+function exact_algorithmic_multiplication{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
   dc_lhs = decompose(lhs)
   dc_rhs = decompose(rhs)
 
-  (dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_multiplication_decomposed(dc_lhs, dc_rhs, Val{lattice}, OT)
+  (dc_lhs.epoch, dc_lhs.lvalue) = algorithmic_multiplication_decomposed(dc_lhs, dc_rhs, Val{lattice})
 
   #reconstitute the result.
   synthesize(PTile{lattice, epochbits}, dc_lhs)
 end
 
 
-@generated function algorithmic_multiplication_decomposed{lattice, output}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}}, OT::Type{Val{output}})
+@generated function algorithmic_multiplication_decomposed{lattice}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}})
   mul_table = table_name(lattice, :mul)
 
   #create the multiplication table, if necessary.

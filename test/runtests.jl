@@ -1,27 +1,55 @@
 using Unum2
 using Base.Test
 
+#=
 include("testtools.jl")
 include("4bittest.jl")
 include("5bittest.jl")
 include("5bitepochtest.jl")
+=#
 
+import_lattice(:PFloatD1)
 
-
-#w = [fma(▾(x), ▾(y), ▾(z)) for x in exacts(PTileD1), y in exacts(PTileD1), z in exacts(PTileD1)]
-
-#println(w)
-
+#fma(PTileD1(0b0111100), PTileD1(0b0101010), PTileD1(0b1001000)) not single: PTileD1(0b0111001) → PTileD1(0b0111101)
 #=
-import_lattice(:PFloat5)
+x = PTileD1(0b0111100)
+y = PTileD1(0b0101010)
+z = PTileD1(0b1001000)
 
-# 14, 12: PTile5e(0b01110) - PTile5e(0b01100) failed as ▾(PTile5e(0b10100)); should be ▾(PTile5e(0b01100))
+println(▾(x) * ▾(y) + ▾(z))
+println(fma(▾(x), ▾(y), ▾(z)))
+println((▾(x) + ▾(z) / ▾(y)) * ▾(y))
+println((▾(y) + ▾(z) / ▾(x)) * ▾(x))
+=#
 
-x = ▾(PTile5(0b01110))
-y = ▾(PTile5(0b01100))
+totalcount = 0
+amendedcount = 0
+
+for x in exacts(PTileD1), y in exacts(PTileD1), z in exacts(PTileD1)
+  w = fma(▾(x), ▾(y), ▾(z))
+  w1 = (▾(x) + ▾(z) / ▾(y)) * ▾(y)
+  w2 = (▾(y) + ▾(z) / ▾(x)) * ▾(x)
+  if !issingle(w)
+    totalcount += 1
+    if issingle(w1) || issingle(w2)
+      amendedcount += 1
+      println("fma($x, $y, $z) not single: $w, but $w1, $w2")
+    end
+  end
+end
+
+println("$(amendedcount / totalcount * 100)% of nonsingles fixed.")
+
+#PTileD1(0b1000100), PTileD1(0b1111110), PTileD1(0b1100010)
+#=
+x = ▾(PTileD1(0b1000100))
+y = ▾(PTileD1(0b1111110))
+z = ▾(PTileD1(0b1100010))
 
 println(x)
 println(y)
+println(z)
 
-println(x - y)
+println(fma(x, y, z))
+println("should be 0b01100")
 =#
