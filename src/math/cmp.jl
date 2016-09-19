@@ -18,7 +18,7 @@ end
 end
 
 @pfunction function >=(x::PTile, y::PTile)
-  is_inf(y) | is_inf(x) | ((@s y) >= (@s x))
+  is_inf(y) | is_inf(x) | ((@s y) <= (@s x))
 end
 
 @pfunction function Base.max(x::PTile, y::PTile)

@@ -1,11 +1,11 @@
 #iter.jl - treating PNums as iterables.
 
 #iterating through PTile type
-Base.start{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = inf(T)
+Base.start{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = (inf(T), false)
 @generated function Base.next{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, state)
-  :((state, next(state)))
+  :((state[1], (next(state[1]), true)))
 end
-Base.done{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, state) = (state == pos_many(T))
+Base.done{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}, state) = (state[2] && state[1] == inf(T))
 Base.eltype{lattice, epochbits}(T::Type{Type{PTile{lattice, epochbits}}}) = PTile{lattice, epochbits}
 Base.length{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = 1 << (1 + latticebits(lattice) + epochbits)
 
@@ -15,15 +15,15 @@ function Base.start{lattice, epochbits}(x::PBound{lattice, epochbits})
   isempty(x) && throw(BoundsError("null set PBound"))
   #start at infinity if we're all reals
   ispreals(x) && return inf(PTile{lattice, epochbits})
-  x.lower
+  (x.lower, false)
 end
-@generated function Base.next{lattice, epochbits}(x::PBound{lattice, epochbits}, state)
-  :((state, next(state)))
+function Base.next{lattice, epochbits}(x::PBound{lattice, epochbits}, state)
+  (state[1], (next(state[1]), true))
 end
 function Base.done{lattice, epochbits}(x::PBound{lattice, epochbits}, state)
-  ispreals(x) && (state == pos_many(T))
-  issingle(x) && return true
-  state == x.upper
+  ispreals(x) && state[2] && (state[1] == inf(T))
+  issingle(x) && return state[2]
+  state[2] && (state[1] > x.upper)
 end
 Base.eltype{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = PTile{lattice, epochbits}
 function Base.length{lattice, epochbits}(x::PBound{lattice, epochbits})
@@ -53,13 +53,12 @@ type ExactIterator{lattice, epochbits}
   upper::PTile{lattice, epochbits}
 end
 
-Base.start{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) = x.lower
-@generated function Base.next{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state)
-  :((state, next(next(state))))
+Base.start{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) = (x.lower, false)
+function Base.next{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state)
+  (state[1], (next(next(state[1])), true))
 end
-Base.done{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state) = (state == x.upper)
+Base.done{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state) = state[2] && (state[1] > x.upper)
 Base.eltype{lattice, epochbits}(T::Type{ExactIterator{lattice, epochbits}}) = PTile{lattice, epochbits}
-
 Base.length{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) =
   @s(((@i x.upper) - (@i x.lower)) >> (64 - latticebits(lattice) - epochbits)) + 1
 
