@@ -164,6 +164,59 @@ import Unum2: decompose, synthesize, __dc_tile, UT_Int, ST_Int
 @test Unum2.additiveinverse(p4p_many) == p4n_many
 
 ################################################################################
+## test iterators
+
+#iterators test in "array generation" mode
+
+#test everything
+@test [x for x in PTile4] == p4vec
+@test [x for x in ℝᵖ(PBound4)] == p4vec
+@test [x for x in PBound4(p4p_one, p4p_two)] == [p4p_one, p4p_much, p4p_two]
+@test [x for x in ▾(one(PTile4))] == [p4p_one]
+@test [x for x in ∅(PBound4)] == []
+@test [x for x in PBound4(p4p_two, p4n_two)] == [p4p_two, p4p_many, p4_inf, p4n_many, p4n_two]
+#test only exacts
+p4vece = [p4_inf, p4n_two, p4n_one, p4n_half, p4_zero, p4p_half, p4p_one, p4p_two]
+
+@test [x for x in exacts(PTile4)] == p4vece
+@test [x for x in exacts(ℝᵖ(PBound4))] == p4vece
+@test [x for x in exacts(PBound4(p4p_one, p4p_two))] == [p4p_one, p4p_two]
+@test [x for x in exacts(PBound4(p4p_most, p4p_two))] == [p4p_one, p4p_two]
+@test [x for x in exacts(PBound4(p4p_one, p4p_many))] == [p4p_one, p4p_two]
+@test [x for x in exacts(PBound4(p4p_most, p4p_many))] == [p4p_one, p4p_two]
+@test [x for x in exacts(▾(one(PTile4)))] == [p4p_one]
+@test [x for x in exacts(▾(p4p_some))] == []
+@test [x for x in exacts(∅(PBound4))] == []
+@test [x for x in exacts(PBound4(p4p_two, p4n_two))] == [p4p_two, p4_inf, p4n_two]
+
+#iterators test in "for loop" iteration mode
+function fgenerate(i)
+  arr = []
+  for t in i
+    push!(arr, t)
+  end
+  arr
+end
+
+@test fgenerate(PTile4) == p4vec
+@test fgenerate(ℝᵖ(PBound4)) == p4vec
+@test fgenerate(PBound4(p4p_one, p4p_two)) == [p4p_one, p4p_much, p4p_two]
+@test fgenerate(▾(one(PTile4))) == [p4p_one]
+@test fgenerate(∅(PBound4)) == []
+@test fgenerate(PBound4(p4p_two, p4n_two)) == [p4p_two, p4p_many, p4_inf, p4n_many, p4n_two]
+#test only exacts
+@test fgenerate(exacts(PTile4)) == p4vece
+@test fgenerate(exacts(ℝᵖ(PBound4))) == p4vece
+@test fgenerate(exacts(PBound4(p4p_one, p4p_two))) == [p4p_one, p4p_two]
+@test fgenerate(exacts(PBound4(p4p_most, p4p_two))) == [p4p_one, p4p_two]
+@test fgenerate(exacts(PBound4(p4p_one, p4p_many))) == [p4p_one, p4p_two]
+@test fgenerate(exacts(PBound4(p4p_most, p4p_many))) == [p4p_one, p4p_two]
+@test fgenerate(exacts(▾(one(PTile4)))) == [p4p_one]
+@test fgenerate(exacts(▾(p4p_some))) == []
+@test fgenerate(exacts(∅(PBound4))) == []
+@test fgenerate(exacts(PBound4(p4p_two, p4n_two))) == [p4p_two, p4_inf, p4n_two]
+
+################################################################################
 
 include("4bittest/4btdefs.jl")
 include("4bittest/4bt-test-add.jl")

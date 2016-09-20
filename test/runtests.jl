@@ -1,12 +1,10 @@
 using Unum2
 using Base.Test
 
-#=
 include("testtools.jl")
 include("4bittest.jl")
 include("5bittest.jl")
 include("5bitepochtest.jl")
-=#
 
 import_lattice(:PFloatD1)
 
@@ -22,6 +20,7 @@ println((▾(x) + ▾(z) / ▾(y)) * ▾(y))
 println((▾(y) + ▾(z) / ▾(x)) * ▾(x))
 =#
 
+#=
 badcount = 0
 totalcount = 0
 doublecount = 0
@@ -44,6 +43,7 @@ for x in exacts(PTileD1), y in exacts(PTileD1), z in exacts(PTileD1)
 end
 
 println("$badcount $totalcount $doublecount nonsingles.")
+=#
 
 #PTileD1(0b1000100), PTileD1(0b1111110), PTileD1(0b1100010)
 #=

@@ -12,16 +12,19 @@ Base.length{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = 1 << (1 + 
 #iterating through PBounds
 
 function Base.start{lattice, epochbits}(x::PBound{lattice, epochbits})
-  isempty(x) && throw(BoundsError("null set PBound"))
+  #use a strategy that will automatically return a zero list.
+  isempty(x) && return (x.upper, true)
   #start at infinity if we're all reals
-  ispreals(x) && return inf(PTile{lattice, epochbits})
+  ispreals(x) && return (inf(PTile{lattice, epochbits}), false)
   (x.lower, false)
 end
 function Base.next{lattice, epochbits}(x::PBound{lattice, epochbits}, state)
+  isdouble(x) && (!state[2]) && containsinf(x) && return (state[1], (next(state[1]), (state[1] == inf(PTile{lattice, epochbits}))))
   (state[1], (next(state[1]), true))
 end
 function Base.done{lattice, epochbits}(x::PBound{lattice, epochbits}, state)
-  ispreals(x) && state[2] && (state[1] == inf(T))
+  isempty(x) && return true
+  ispreals(x) && return (state[2] && (state[1] == inf(PTile{lattice, epochbits})))
   issingle(x) && return state[2]
   state[2] && (state[1] > x.upper)
 end
@@ -55,6 +58,10 @@ end
 
 Base.start{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) = (x.lower, false)
 function Base.next{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state)
+  if (x.upper < x.lower) && (!state[2])
+    return (state[1], ((next(next(state[1]))), state[1] == inf(PTile{lattice, epochbits})))
+  end
+
   (state[1], (next(next(state[1])), true))
 end
 Base.done{lattice, epochbits}(x::ExactIterator{lattice, epochbits}, state) = state[2] && (state[1] > x.upper)
@@ -62,19 +69,18 @@ Base.eltype{lattice, epochbits}(T::Type{ExactIterator{lattice, epochbits}}) = PT
 Base.length{lattice, epochbits}(x::ExactIterator{lattice, epochbits}) =
   @s(((@i x.upper) - (@i x.lower)) >> (64 - latticebits(lattice) - epochbits)) + 1
 
-
 function exacts{lattice, epochbits}(x::PBound{lattice, epochbits})
-  isempty(x) && throw(BoundsError("null set PBound has no exacts"))
+  isempty(x) && return PTile{lattice, epochbits}[]
   if issingle(x)
     if isexact(x.lower)
       return ExactIterator(x.lower, x.lower)
     else
-      throw(BoundsError("inexact tile PBound has no exacts"))
+      return PTile{lattice, epochbits}[]
     end
   end
   ispreals(x) && return ExactIterator(inf(PTile{lattice, epochbits}), maxexact(PTile{lattice, epochbits}))
-  lower = glb(x.lower)
-  upper = lub(x.upper)
+  lower = lub(x.lower)
+  upper = glb(x.upper)
   (upper == lower) && (upper = prev(prev(upper)))
   ExactIterator(lower, upper)
 end
