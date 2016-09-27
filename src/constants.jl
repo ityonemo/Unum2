@@ -8,12 +8,12 @@
   :($x)
 end
 
-Base.inf{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})  = @p(PTILE_INF)
+inf{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})  = @p(PTILE_INF)
 Base.zero{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = @p(PTILE_ZERO)
 Base.one{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})  = @p(PTILE_ONE)
 neg_one{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})   = @p(PTILE_NEG_ONE)
 
-export neg_one
+export inf, neg_one
 
 is_zero(x::PTile) = @i(x) == PTILE_ZERO
 is_inf(x::PTile) = @i(x) == PTILE_INF
@@ -46,6 +46,9 @@ emptyset{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = PBound{lattic
 
 allprojectivereals{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = T(zero(PTile{lattice, epochbits}), zero(PTile{lattice, epochbits}), PBOUND_ALLPREALS)
 allprojectivereals{lattice, epochbits}(T::Type{PTile{lattice, epochbits}}) = PBound{lattice, epochbits}(zero(T), zero(T), PBOUND_ALLPREALS)
+
+positives{lattice, epochbits}(T::Type{PBound{lattice, epochbits}}) = PBound{lattice, epochbits}(pos_few(PTile{lattice,epochbits}), pos_many(PTile{lattice,epochbits}))
+positives{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})  = PBound{lattice, epochbits}(pos_few(T), pos_many(T))
 ################################################################################
 
-export pos_many, neg_many, pos_few, neg_few
+export pos_many, neg_many, pos_few, neg_few, positives

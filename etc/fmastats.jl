@@ -13,7 +13,7 @@ function fmastats(T)
   redo_nonsingles = 0
   whit_nonsingles = 0
 
-  for x in exacts(T), y in exacts(T), z in exacts(T)
+  for x in exacts(positives(T)), y in exacts(positives(T)), z in exacts(T)
     w0 = ▾(x) * ▾(y) + ▾(z)
 
     #ignore trivial cases where we get all projective reals.
