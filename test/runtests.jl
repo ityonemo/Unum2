@@ -20,31 +20,6 @@ println((▾(x) + ▾(z) / ▾(y)) * ▾(y))
 println((▾(y) + ▾(z) / ▾(x)) * ▾(x))
 =#
 
-#=
-badcount = 0
-totalcount = 0
-doublecount = 0
-
-for x in exacts(PTileD1), y in exacts(PTileD1), z in exacts(PTileD1)
-  w0 = ▾(x) * ▾(y) + ▾(z)
-  issingle(w0) || (badcount += 1)
-
-  w = fma(▾(x), ▾(y), ▾(z))
-  w1 = (▾(x) + ▾(z) / ▾(y)) * ▾(y)
-  w2 = (▾(y) + ▾(z) / ▾(x)) * ▾(x)
-  if !issingle(w)
-    totalcount += 1
-    if issingle(w1) || issingle(w2)
-      println("fma($x, $y, $z) not single: $w, but $w1, $w2")
-    else
-      doublecount += 1
-    end
-  end
-end
-
-println("$badcount $totalcount $doublecount nonsingles.")
-=#
-
 #PTileD1(0b1000100), PTileD1(0b1111110), PTileD1(0b1100010)
 #=
 x = ▾(PTileD1(0b1000100))
