@@ -76,7 +76,11 @@ lattice_length(l::Symbol) = length(__MASTER_LATTICE_LIST[l])
   sub_table             = table_name(lattice, :sub)
   inv_sub_table         = table_name(lattice, :inv_sub)
   sub_epoch_table       = table_name(lattice, :sub_epoch)
-  isdefined(Unum2, sub_table)       || create_uninverted_subtraction_tables(Val{lattice})
+
+  check_table_or_throw(sub_table)
+  check_table_or_throw(inv_sub_table)
+  check_table_or_throw(sub_epoch_table)
+
   max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) + 1
   quote
 
@@ -126,7 +130,9 @@ end
 @generated function inverted_subtraction_decomposed{lattice}(big::__dc_tile, sml::__dc_tile, L::Type{Val{lattice}})
   sub_inv_table         = table_name(lattice, :sub_inv)
   sub_inv_epoch_table   = table_name(lattice, :sub_inv_epoch)
-  isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_tables(Val{lattice})
+
+  check_table_or_throw(sub_inv_table)
+  check_table_or_throw(sub_inv_epoch_table)
   quote
     #NB:  move this to be a precompiled value instead of a calculated value.
     cells = size($sub_inv_table, 1)
@@ -150,8 +156,12 @@ end
   sub_cross_table       = table_name(lattice, :sub_cross)
   inv_sub_cross_table   = table_name(lattice, :inv_sub_cross)
   sub_cross_epoch_table = table_name(lattice, :sub_cross_epoch)
+
+  check_table_or_throw(sub_cross_table)
+  check_table_or_throw(inv_sub_cross_table)
+  check_table_or_throw(sub_cross_epoch_table)
+
   #create the inversion table table, if necessary.
-  isdefined(Unum2, sub_cross_table) || create_crossed_subtraction_tables(Val{lattice})
   max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) + 1
 
   quote
@@ -199,6 +209,12 @@ end
 
 ################################################################################
 # SUBTRACTION TABLES
+
+function create_subtraction_tables(lattice::Symbol)
+  create_uninverted_subtraction_tables(Val{lattice})
+  create_inverted_subtraction_tables(Val{lattice})
+  create_crossed_subtraction_tables(Val{lattice})
+end
 
 doc"""
   Unum2.search_epochs(value, stride)

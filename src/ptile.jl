@@ -26,7 +26,7 @@ const MAG_MASK = ~PTILE_INF
 const CON_MASK = ~PTILE_NEG_ONE
 
 #don't call PTile constructor with an unsigned integer, that is reserved for direct binary initialization
-@generated function Base.call{lattice, epochbits}(::Type{PTile{lattice, epochbits}}, n::Unsigned)
+@generated function (::Type{PTile{lattice, epochbits}}){lattice, epochbits}(::Type{PTile{lattice, epochbits}}, n::Unsigned)
   shiftbits = PT_bits - epochbits - (latticebits(lattice) + 1)
   quote
     #the PTile library keeps its values shifted right.

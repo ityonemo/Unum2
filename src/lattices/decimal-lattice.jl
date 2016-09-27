@@ -7,4 +7,6 @@ typealias PBoundD1 PBound{:LnumD1, 1}
 
 Base.show(io::IO, ::Type{PTileD1}) = print(io, "PTileD1")
 
+create_tables(:LnumD1)
+
 nothing

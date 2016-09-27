@@ -364,8 +364,8 @@ end
 @generated function algorithmic_multiplication_decomposed{lattice}(lhs::__dc_tile, rhs::__dc_tile, L::Type{Val{lattice}})
   mul_table = table_name(lattice, :mul)
 
-  #create the multiplication table, if necessary.
-  isdefined(Unum2, mul_table) || create_multiplication_table(Val{lattice})
+  check_table_or_throw(mul_table)
+  
   quote
     res_epoch = lhs.epoch + rhs.epoch
 

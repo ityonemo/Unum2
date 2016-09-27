@@ -175,7 +175,8 @@ end
 
   #ensure that the requisite tables exist.
   add_table = table_name(lattice, :add)
-  isdefined(Unum2, add_table) || create_uninverted_addition_tables(Val{lattice})
+  check_table_or_throw(add_table)
+
   quote
     #NB:  move this to be a precompiled value instead of a calculated value.
 
@@ -202,7 +203,9 @@ end
   add_inv_table     = table_name(lattice, :add_inv)
   inv_add_inv_table = table_name(lattice, :inv_add_inv)
 
-  isdefined(Unum2, add_inv_table) || create_inverted_addition_tables(Val{lattice})
+  check_table_or_throw(add_inv_table)
+  check_table_or_throw(inv_add_inv_table)
+
   max_lvalue = (length(__MASTER_LATTICE_LIST[lattice]) << 1) + 1
   quote
     cells = size($add_inv_table, 1)
@@ -235,7 +238,8 @@ end
 
   #ensure that the requisite tables exist.
   add_cross_table = table_name(lattice, :add_cross)
-  isdefined(Unum2, add_cross_table) || create_crossed_addition_tables(Val{lattice})
+  check_table_or_throw(add_cross_table)
+
   quote
     cells = size($add_cross_table, 1)
 
@@ -261,6 +265,12 @@ end
 ################################################################################
 # ADDITION TABLES
 ################################################################################
+
+function create_addition_tables(lattice::Symbol)
+  create_uninverted_addition_tables(Val{lattice})
+  create_inverted_addition_tables(Val{lattice})
+  create_crossed_addition_tables(Val{lattice})
+end
 
 doc"""
   Unum2.create_uninverted_addition_tables(::Type{Val{lattice}})

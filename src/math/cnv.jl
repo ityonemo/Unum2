@@ -56,7 +56,7 @@ function cnv{lattice, epochbits}(P::Type{PTile{lattice, epochbits}}, x::Real)
   synthesize(P, dc_res)
 end
 
-@generated function Base.call{lattice, epochbits}(::Type{PTile{lattice, epochbits}}, value)
+@generated function (::Type{PTile{lattice, epochbits}}){lattice, epochbits}(value)
   validate(__MASTER_LATTICE_LIST[lattice], __MASTER_STRIDE_LIST[lattice])  #double check to make sure it's ok, because why not.
   #make sure epochs is more than 0
   (epochbits > 0) || throw(ArgumentError("must have at least one epoch bit"))

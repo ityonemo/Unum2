@@ -33,4 +33,4 @@ loool = -PTile5e(9)
 
 p5evec = [ooool, ooolo, oooll, ooloo, oolol, oollo, oolll, olooo, olool, ololo, ololl, olloo, ollol, olllo, ollll]
 
-testop5(op, expected) = testop(op, p5evec, expected, :PFloat5e)
+testop5e(op, expected) = testop(op, p5evec, expected, :PFloat5e)

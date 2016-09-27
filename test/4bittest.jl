@@ -28,7 +28,7 @@ p4vec = [p4_inf, p4n_many, p4n_two, p4n_much, p4n_one, p4n_most, p4n_half, p4n_s
 #test to make sure that everything looks as it should.
 intvalue = utop
 for x in p4vec
-  @test (x : lookslike : intvalue)
+  @test (reinterpret(Unum2.UT_Int, x) == intvalue)
   intvalue += Unum2.incrementor(PTile4)
 end
 

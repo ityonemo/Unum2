@@ -72,11 +72,12 @@ end
   #same direction (out or in) relative to one.
   div_table = table_name(lattice, :div)
   inv_table = table_name(lattice, :inv)
-  div_inv_table = table_name(lattice, :div_inv)
+  inv_div_table = table_name(lattice, :inv_div)
 
-  #create the multiplication table, if necessary.
-  isdefined(Unum2, div_table) || create_division_table(Val{lattice})
-  isdefined(Unum2, inv_table) || create_inversion_table(Val{lattice})
+  check_table_or_throw(div_table)
+  check_table_or_throw(inv_table)
+  check_table_or_throw(inv_div_table)
+
   quote
     res_epoch = lhs.epoch - rhs.epoch - ((lhs.lvalue < rhs.lvalue) * 1)
 
@@ -90,7 +91,7 @@ end
       elseif (lhs.lvalue == 0)
         res_lvalue = rhs.lvalue
       else
-        res_lvalue = $div_inv_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
+        res_lvalue = $inv_div_table[lhs.lvalue >> 1, rhs.lvalue >> 1]
       end
       (res_lvalue == 0) && (res_epoch += 1)
     else
@@ -110,7 +111,7 @@ end
 #being a generated function is the cleanest way to generate and use the new symbol.
 @generated function create_division_table{lattice}(::Type{Val{lattice}})
   div_table = table_name(lattice, :div)
-  div_inv_table = table_name(lattice, :div_inv)
+  inv_div_table = table_name(lattice, :inv_div)
   quote
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]
@@ -118,7 +119,7 @@ end
     l = length(lattice_values)
     #allocate the memory for the matrix.
     global const $div_table = Matrix{UT_Int}(l, l)
-    global const $div_inv_table = Matrix{UT_Int}(l, l)
+    global const $inv_div_table = Matrix{UT_Int}(l, l)
 
     for idx = 1:l
       for idx2 = 1:l
@@ -128,7 +129,7 @@ end
 
         $div_table[idx, idx2] = @i search_lattice(lattice_values, true_value)
 
-        $div_inv_table[idx, idx2] = (true_value == 1) ? UT_Int(0) :
+        $inv_div_table[idx, idx2] = (true_value == 1) ? UT_Int(0) :
           @i search_lattice(lattice_values, stride_value / true_value)
       end
     end
