@@ -69,7 +69,7 @@ function elaborate(a::Array{Rational{Int64}, 1}, top, bits)
 
     remains = full_count - length(latticepoints) #update the count of b.
   end
-  
+
   sort!(latticepoints)
   latticepoints
 end

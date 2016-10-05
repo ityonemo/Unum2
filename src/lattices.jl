@@ -106,7 +106,10 @@ const __LATTICE_DICT = Dict{Symbol, String}(
   :PFloat5 => "five-bit-lattice.jl",
   :PFloat5e => "five-bit-epoch-lattice.jl",
   :PFloat6 => "six-bit-lattice.jl",
-  :PFloatD1 => "decimal-lattice.jl"
+  :PFloatD1 => "decimal-lattice.jl",
+  :PFloatDM7 => "decimal-mul7.jl",
+  :PFloatDM7a => "decimal-mul7a.jl",
+  :PFloatDF7 => "decimal-fma7.jl"
 )
 
 function import_lattice(l)
