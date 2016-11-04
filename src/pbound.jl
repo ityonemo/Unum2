@@ -29,7 +29,6 @@ function (::Type{PBound{lattice, epochbits}}){lattice,epochbits}(lower::PTile{la
   end
 end
 
-#Base.call{lattice, epochbits}(::Type{PBound{lattice, epochbits}}, x::PBound{lattice, epochbits}) = PBound{lattice, epochbits}(x.lower, x.upper, x.state)
 (::Type{PBound{lattice, epochbits}}){lattice, epochbits}(x::PTile{lattice, epochbits}) = PBound{lattice, epochbits}(x, zero(PTile{lattice, epochbits}), PTile_SINGLETON)
 (::Type{PBound{lattice, epochbits}}){lattice, epochbits}(::Type{PTile{lattice, epochbits}}) = PBound{lattice, epochbits}
 

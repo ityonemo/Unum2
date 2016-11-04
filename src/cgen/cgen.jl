@@ -23,6 +23,7 @@ function generate_tables(io::IO, lattice::Symbol)
   isdefined(Unum2, mul_table)       || create_multiplication_table(Val{lattice})
   isdefined(Unum2, div_table)       || create_division_table(Val{lattice})
   isdefined(Unum2, inv_table)       || create_inversion_table(Val{lattice})
+  
 end
 
 export generate_c_library

@@ -93,6 +93,11 @@ doc"""
   then it returns the value; if it's an ulp, it return the next PTile.
 """
 lub{lattice, epochbits}(x::PTile{lattice, epochbits}) = isexact(x) ? x : next(x)
+function lub{lattice, epochbits}(x::PBound{lattice, epochbits})
+  is_single(x) && return lub(x.lower)
+  is_double(x) && return lub(x.upper)
+  throw(ArgumentError("lub only can work on single or double values."))
+end
 
 doc"""
   glb(::PTile) outputs the greates lower bound for PTile.  If the PTile is exact
