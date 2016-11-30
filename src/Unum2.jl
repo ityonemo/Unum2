@@ -28,4 +28,7 @@ include("h-layer.jl")
 include("rationalarray.jl")
 include("rationalarray2.jl")
 
+#c generation tools
+include("cgen/cgen.jl")
+
 end # module

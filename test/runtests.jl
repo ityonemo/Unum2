@@ -5,6 +5,7 @@ include("testtools.jl")
 include("4bittest.jl")
 include("5bittest.jl")
 include("5bitepochtest.jl")
+include("cgentest.jl")
 
 #=
 a = collect(2:9)

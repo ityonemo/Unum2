@@ -1,5 +1,4 @@
 
-
 *{lattice, epochbits}(lhs::PBound{lattice, epochbits}, rhs::PBound{lattice, epochbits}) = mul(lhs,rhs)
 @pfunction function mul(lhs::PBound, rhs::PBound)
 

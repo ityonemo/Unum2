@@ -365,7 +365,7 @@ end
   mul_table = table_name(lattice, :mul)
 
   check_table_or_throw(mul_table)
-  
+
   quote
     res_epoch = lhs.epoch + rhs.epoch
 
@@ -391,7 +391,7 @@ end
 #I didn't want this to be a generated function, but it was the cleanest way to
 #generate and use the new sybol.
 @generated function create_multiplication_table{lattice}(::Type{Val{lattice}})
-  mult_table = Symbol("__$(lattice)_mul_table")
+  mult_table = table_name(lattice, :mul)
   quote
     #store the lattice values and the stride values.
     lattice_values = __MASTER_LATTICE_LIST[lattice]

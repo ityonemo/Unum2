@@ -15,7 +15,6 @@ const PT_bits = sizeof(UT_Int) * 8
 bitstype PT_bits PTile{lattice, epochbits} <: AbstractFloat
 export PTile
 
-
 const PTILE_ZERO = zero(UT_Int)
 const PTILE_INF  = one(UT_Int) << (PT_bits - 1)
 const PTILE_ONE  = one(UT_Int) << (PT_bits - 2)

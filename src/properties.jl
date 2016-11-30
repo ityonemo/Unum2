@@ -18,8 +18,8 @@ end
 
 export isnegative, ispositive, isinverted
 
+import Base.isempty
 #pbound properties.
-
 isempty{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_NULLSET)
 issingle{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_SINGLE)
 isdouble{lattice, epochbits}(x::PBound{lattice, epochbits}) = (x.state == PBOUND_DOUBLE)
@@ -35,7 +35,7 @@ containsinf{lattice, epochbits}(x::PBound{lattice,epochbits}) = x.state == (PBOU
 function containszero{lattice, epochbits}(x::PBound{lattice,epochbits})
   ((x.state & PBOUND_DOUBLE) == 0) && return false  #traps both allreals and stdbound
   (is_zero(x.lower) || is_zero(x.upper)) && return true
-  
+
   if containsinf(x)
     ispositive(x.lower) == ispositive(x.upper)
   else

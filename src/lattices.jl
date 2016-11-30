@@ -101,7 +101,6 @@ function search_lattice(l::Lattice, v, p = 1)
 end
 
 const __LATTICE_DICT = Dict{Symbol, String}(
-  :PFloat3 => "three-bit-lattice.jl",
   :PFloat4 => "four-bit-lattice.jl",
   :PFloat5 => "five-bit-lattice.jl",
   :PFloat5e => "five-bit-epoch-lattice.jl",
