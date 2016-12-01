@@ -81,10 +81,9 @@ module cgen
 end
 
 doc"""
-  `generate_c_library(path, hpath, floatname, PType)`
-
+  `generate_lattice_files(path, hpath, floatname, PType <: PTile)`
 """
-function generate_c_library{lattice, epochbits}(path::String, hpath::String, floatname::Symbol, PType::Type{PTile{lattice, epochbits}})
+function generate_lattice_files{lattice, epochbits}(path::String, hpath::String, floatname::Symbol, PType::Type{PTile{lattice, epochbits}})
   #test to see if the path exists.
   isdir(path) || mkdir(path)
   #next, create a file for the header.
@@ -100,20 +99,33 @@ function generate_c_library{lattice, epochbits}(path::String, hpath::String, flo
     close(cfile_fio)
   end
 end
-#=
-function generate_tables(io::IO, lattice::Symbol)
 
-  isdefined(Unum2, add_table)       || create_uninverted_addition_tables(Val{lattice})
-  isdefined(Unum2, add_inv_table)   || create_inverted_addition_tables(Val{lattice})
-  isdefined(Unum2, add_cross_table) || create_crossed_addition_tables(Val{lattice})
-  isdefined(Unum2, sub_table)       || create_uninverted_subtraction_tables(Val{lattice})
-  isdefined(Unum2, sub_inv_table)   || create_inverted_subtraction_tables(Val{lattice})
-  isdefined(Unum2, sub_cross_table) || create_crossed_subtraction_tables(Val{lattice})
-  isdefined(Unum2, mul_table)       || create_multiplication_table(Val{lattice})
-  isdefined(Unum2, div_table)       || create_division_table(Val{lattice})
-  isdefined(Unum2, inv_table)       || create_inversion_table(Val{lattice})
+doc"""
+  `generate_library(path_to_c_library::String, pfloat_label::Symbol, destination_dir::String="./")`
+  `generate_library(path_to_c_library::String, pfloat_labels::Array{Symbol, 1}, destination_dir::String="./")`
+  returns the full path to the library file
+"""
+generate_library(path_to_c_library::String, pfloat_label::Symbol, destination_dir::String="./") = generate_library(path_to_c_library, [pfloat_label], destination_dir)
+function generate_library(path_to_c_library::String, pfloat_labels::Array{Symbol,1}, destination_dir::String="./")
+  println("generating library from $path_to_c_library")
+  println("with labels $pfloat_labels")
+  println("with destination $destination_dir")
 
+  #check to see if the path_to_c_library is actually a dir.
+  isdir(path_to_c_library) || return nothing
+
+  #create the temp directory
+  tdir = mktemp()[1]
+  #next, copy the contents of path_to_c_library into the temp directory
+  cp(path_to_c_library, tdir; remove_destination=true)
+
+  #then, generate the c files for all of the desired lattices.
+  for lattice_label in pfloat_labels
+    PType = import_lattice(lattice_label)
+    generate_lattice_files(string(tdir,"/src"), "include/", lattice_label, PType)
+  end
+
+  tdir
 end
-=#
 
-export generate_c_library
+export generate_lattice_files, generate_library

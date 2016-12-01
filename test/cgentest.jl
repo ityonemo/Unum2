@@ -13,33 +13,35 @@
 
 #open the reference file.
 #the target directory
-tgtdir = string(Pkg.dir("Unum2"), "/test/tgt")
-#the reference directory
-refdir = string(Pkg.dir("Unum2"), "/test/res")
+mktempdir((tgtdir) -> begin
+  #the reference directory
+  refdir = string(Pkg.dir("Unum2"), "/test/res")
 
-generate_c_library(tgtdir, "../include", :PFloat5, PTile5)
+  generate_lattice_files(tgtdir, "../include", :PFloat5, PTile5)
 
-reference_header_file = open(string(tgtdir, "/PFloat5.h"), "r")
-target_header_file    = open(string(refdir, "/PFloat5.h"), "r")
-try
-  while !(eof(reference_header_file))
-    @test chomp(readline(reference_header_file)) == chomp(readline(target_header_file))
+  reference_header_file = open(string(tgtdir, "/PFloat5.h"), "r")
+  target_header_file    = open(string(refdir, "/PFloat5.h"), "r")
+  try
+    while !(eof(reference_header_file))
+      @test chomp(readline(reference_header_file)) == chomp(readline(target_header_file))
+    end
+  finally
+    close(reference_header_file)
+    close(target_header_file)
   end
-finally
-  close(reference_header_file)
-  close(target_header_file)
-end
 
-reference_code_file = open(string(tgtdir, "/PFloat5.c"), "r")
-target_code_file    = open(string(refdir, "/PFloat5.c"), "r")
-try
-  while !(eof(reference_code_file))
-    @test chomp(readline(reference_code_file)) == chomp(readline(target_code_file))
+  reference_code_file = open(string(tgtdir, "/PFloat5.c"), "r")
+  target_code_file    = open(string(refdir, "/PFloat5.c"), "r")
+  try
+    while !(eof(reference_code_file))
+      @test chomp(readline(reference_code_file)) == chomp(readline(target_code_file))
+    end
+  finally
+    close(reference_code_file)
+    close(target_code_file)
   end
-finally
-  close(reference_code_file)
-  close(target_code_file)
-end
+end)
 
-#clean up.
-rm(tgtdir, recursive=true)
+
+t = generate_library(expanduser("~/code/Unum2-c"), :PFloat5)
+println(t)
