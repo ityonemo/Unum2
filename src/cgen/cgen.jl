@@ -9,6 +9,9 @@ module cgen
   using ...Unum2: table_name, latticebits, incrementor
   using ...Unum2
 
+  #general c compilation tools.
+  include("c-compilation.jl")
+
   ##############################################################################
   ## HEADER PARTS
 
@@ -107,25 +110,26 @@ doc"""
 """
 generate_library(path_to_c_library::String, pfloat_label::Symbol, destination_dir::String="./") = generate_library(path_to_c_library, [pfloat_label], destination_dir)
 function generate_library(path_to_c_library::String, pfloat_labels::Array{Symbol,1}, destination_dir::String="./")
-  println("generating library from $path_to_c_library")
-  println("with labels $pfloat_labels")
-  println("with destination $destination_dir")
-
   #check to see if the path_to_c_library is actually a dir.
   isdir(path_to_c_library) || return nothing
 
   #create the temp directory
-  tdir = mktemp()[1]
-  #next, copy the contents of path_to_c_library into the temp directory
-  cp(path_to_c_library, tdir; remove_destination=true)
+  mktempdir((tdir)->begin
+    #next, copy the contents of path_to_c_library into the temp directory
+    cp(path_to_c_library, tdir; remove_destination=true)
 
-  #then, generate the c files for all of the desired lattices.
-  for lattice_label in pfloat_labels
+    #then, generate the c files for all of the desired lattices.
+    for lattice_label in pfloat_labels
     PType = import_lattice(lattice_label)
-    generate_lattice_files(string(tdir,"/src"), "include/", lattice_label, PType)
-  end
+    generate_lattice_files(string(tdir,"/src"), "../include", lattice_label, PType)
+    end
 
-  tdir
+    cgen.compile(tdir)
+    cgen.link(tdir)
+
+    #now move the thing out of the temporary directory
+    cp(joinpath(tdir, "libpfloat.so"), joinpath(destination_dir,"libpfloat.so"), remove_destination=true)
+  end)
 end
 
 export generate_lattice_files, generate_library
