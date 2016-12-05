@@ -247,7 +247,7 @@ end
     # uninverted 0, inverted 0 - cell 1
     # uninverted 0, inverted 1 - cell 2
     # uninverted 1, inverted 0 - cell 2
-    lookup_cell = big.epoch + sml.epoch + 1
+    lookup_cell = sml.epoch + big.epoch + 1
 
     #if (lookup_cell <= cells)
     if lookup_cell == 1

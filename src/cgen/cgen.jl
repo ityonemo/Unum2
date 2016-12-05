@@ -39,7 +39,21 @@ module cgen
     "extern const unsigned long long $table_to_output[$l];\n"
   end
 
-  tablelist=[:add, :add_inv, :add_cross, :sub, :sub_epoch, :sub_inv, :sub_inv_epoch, :sub_cross, :sub_cross_epoch, :mul, :div, :inv_div, :inv]
+  tablelist=[
+    :add, :add_inv, :add_cross,
+    :sub, :sub_inv, :sub_cross,
+
+    :inv_add_inv,
+    :inv_sub,
+    :inv_sub_cross,
+
+    :sub_epoch,
+    :sub_inv_epoch,
+    :sub_cross_epoch,
+
+    :mul, :div, :inv_div, :inv]
+
+  multitablelist = [:add, :add_inv, :add_cross, :sub, :sub_inv, :sub_cross]
 
   function write_hfile(io::IO, hdir::String, floatname::Symbol, latticename::Symbol)
     write(io, header_hstring(floatname))
@@ -58,28 +72,75 @@ module cgen
     lb = latticebits(lattice)
     inc = string("0x",hex(incrementor(PType),16))
     tablenames = join(map((s) -> table_name(lattice, s), tablelist), ",")
-    "const PEnv $(label)_ENV={$lb,$epochbits,$inc,{$tablenames}};\n"
+    "const PEnv $(label)_ENV={$lb,$epochbits,$inc,__$(lattice)_table_counts,{$tablenames}};\n"
+  end
+
+  function setter_string(label::Symbol)
+    "void set_$label(){PENV = (PEnv *)(&$(label)_ENV);}\n"
+  end
+
+  typealias IArray{N} Union{Array{UInt64, N}, Array{Int64, N}}
+  rearrange(lut::IArray{1}) = lut
+  function rearrange(lut::IArray{2})
+    entries = size(lut, 1)
+    indexcalc = (lhs_idx, rhs_idx) -> (lhs_idx - 1) * (entries) + rhs_idx
+
+    res = lut[:]
+    for lhs_idx = 1:entries, rhs_idx = 1:entries
+      res[indexcalc(lhs_idx, rhs_idx)] = lut[lhs_idx, rhs_idx]
+    end
+
+    res
+  end
+
+  function rearrange(lut::IArray{3})
+    tables = size(lut, 1)
+    entries = size(lut, 2)
+    indexcalc = (table_idx, lhs_idx, rhs_idx) -> (table_idx - 1) * (entries) * (entries) + (lhs_idx - 1) * (entries) + rhs_idx
+
+    #copy the res vector as a flattend lut.
+    res = lut[:]
+    for table_idx = 1:tables, lhs_idx = 1:entries, rhs_idx = 1:entries
+      res[indexcalc(table_idx, lhs_idx, rhs_idx)] = lut[table_idx, lhs_idx, rhs_idx]
+    end
+
+    res
   end
 
   #generate a string that creates the table in C.
   function tablestring(lattice::Symbol, table::Symbol)
     table_to_output = table_name(lattice, table)
     isdefined(Unum2, table_to_output) || throw(ArgumentError("error attempting to access an undefined lattice"))
-    table = eval(Unum2, :($table_to_output))
+    table_vals = eval(Unum2, :($table_to_output))
 
-    l = length(table)
-    contents = join(map((x) -> string("0x",hex(reinterpret(UInt64, x), 16)), table[:]), ",")
+    l = length(table_vals)
+    contents = join(map((x) -> string("0x",hex(reinterpret(UInt64, x), 16)), rearrange(table_vals)[:]), ",")
     "const unsigned long long $table_to_output[$l]={$contents};\n"
   end
 
   header_cstring(label::Symbol) = "#include \"$label.h\"\n"
+
+  function tablecount(lattice::Symbol, table::Symbol)
+    table_to_output = table_name(lattice, table)
+    isdefined(Unum2, table_to_output) || throw(ArgumentError("error attempting to access the undefined lattice $lattice"))
+    table = eval(Unum2, :($table_to_output))
+
+    size(table, 1)
+  end
+
+  function tablesize_cstring(lattice::Symbol)
+    tstring = join(map((table) -> tablecount(lattice, table), multitablelist), ",")
+    "const int __$(lattice)_table_counts[6]={$tstring};\n"
+  end
 
   function write_cfile{lattice, epochbits}(io::IO, hdir::String, floatname::Symbol, PType::Type{PTile{lattice, epochbits}})
     write(io, header_cstring(floatname))
     for table in tablelist
       write(io, tablestring(lattice, table))
     end
+    write(io, tablesize_cstring(lattice))
     write(io, envstring(floatname, PType))
+    write(io, setter_string(floatname))
   end
 end
 
@@ -127,8 +188,12 @@ function generate_library(path_to_c_library::String, pfloat_labels::Array{Symbol
     cgen.compile(tdir)
     cgen.link(tdir)
 
+    respath = joinpath(destination_dir,"libpfloat.so")
     #now move the thing out of the temporary directory
-    cp(joinpath(tdir, "libpfloat.so"), joinpath(destination_dir,"libpfloat.so"), remove_destination=true)
+    cp(joinpath(tdir, "libpfloat.so"), respath, remove_destination=true)
+
+    #return the path for the resulting library
+    respath
   end)
 end
 
