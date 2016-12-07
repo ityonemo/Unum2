@@ -30,32 +30,42 @@ end
 #a general purpose function for testing operations in the c framework.
 function testop_c(op, PTtype)
 
-  dimension = length(exacts(PTtype))
+  dimension = length(PTtype)
   totalsize = dimension * dimension
   fails = 0
 
-  for tile1 in exacts(PTtype)
-    for tile2 in exacts(PTtype)
-      pval1 = ▾(tile1)
-      pval2 = ▾(tile2)
-      #println("doing $pval1 + $pval2")
-      try
-        expected = op(pval1, pval2)
-        res = c_fun[op](pval1, pval2)
-        if res != expected
-          println("$tile1 $op $tile2 failed as $res, should be $expected")
-          fails += 1
-        end
-      catch e
-        println("$tile1 $op $tile2: failed due to thrown error: $e")
-        bt = catch_backtrace()
-        s = sprint(io->Base.show_backtrace(io, bt))
-        println("$s")
-        fails += 1
-      end
+  for tile1 in PTtype
+    for tile2 in PTtype
+      fails += testop_c(op, tile1, tile2)
     end
   end
+  println("for $PTtype, $op in C fails $fails / $(totalsize) = $(100 * fails/totalsize)% failure!")
+end
 
-  println("for $PTtype, $op fails $fails / $(totalsize) = $(100 * fails/totalsize)% failure!")
+function testop_c{PType}(op, pval1::PType, pval2::PType; describe::Bool = false)
+  if PType <: PTile
+    pval1 = ▾(pval1)
+    pval2 = ▾(pval2)
+  end
 
+  describe && println("$pval1 $op $pval2")
+
+  try
+    expected = op(pval1, pval2)
+    res = c_fun[op](pval1, pval2)
+
+    if res != expected
+      println("$pval1 $op $pval2 failed as $res, should be $expected")
+      return true
+    end
+
+  catch e
+    println("$pval1 $op $pval2: failed due to thrown error: $e")
+    bt = catch_backtrace()
+    s = sprint(io->Base.show_backtrace(io, bt))
+    println("$s")
+    return true
+  end
+
+  return false
 end

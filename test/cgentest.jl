@@ -50,6 +50,7 @@ type PShim
   upper::UInt64
   state::UInt64
 end
+
 PShim(b::PBound) = PShim(reinterpret(UInt64, b.lower), reinterpret(UInt64, b.upper), UInt64(b.state))
 (::Type{PBound{lattice, epochbits}}){lattice, epochbits}(s::PShim) = PBound{lattice, epochbits}(
   reinterpret(PTile{lattice,epochbits}, s.lower),
@@ -82,8 +83,9 @@ function div_fun{lattice, epochbits}(x::PBound{lattice, epochbits}, y::PBound{la
 end
 
 const setfunction = Dict{Type, Function}(
-  PBound5 => () -> ccall((:set_PFloat5, "./libpfloat.so"), Void, ()),
-  PBound4 => () -> ccall((:set_PFloat4, "./libpfloat.so"), Void, ())
+  PBound5  => () -> ccall((:set_PFloat5,  "./libpfloat.so"), Void, ()),
+  PBound4  => () -> ccall((:set_PFloat4,  "./libpfloat.so"), Void, ()),
+  PBound5e => () -> ccall((:set_PFloat5e, "./libpfloat.so"), Void, ())
 )
 
 addf = +
@@ -95,20 +97,18 @@ const c_fun = Dict{Function, Function}(
   divf => div_fun,
 )
 
-generate_library(expanduser("~/code/Unum2-c"), [:PFloat5, :PFloat4])
+generate_library(expanduser("~/code/Unum2-c"), [:PFloat5, :PFloat4, :PFloat5e])
 
-#Unum2.PTile{:Lnum5,1}(0b10010) * Unum2.PTile{:Lnum5,1}(0b11100) failed as ▾(Unum2.PTile{:Lnum5,1}(0b01110)), should be ▾(Unum2.PTile{:Lnum5,1}(0b01010))
+#▾(Unum2.PTile{:Lnum5e,2}(0b10110)) * ▾(Unum2.PTile{:Lnum5e,2}(0b11110)) failed as ▾(Unum2.PTile{:Lnum5e,2}(0b01000)), should be ▾(Unum2.PTile{:Lnum5e,2}(0b00100))
 #=
-pval1 = ▾(PTile5(-8))
-pval2 = ▾(PTile5(-1/4))
-
-println("multiplying $pval1, $pval2")
-println("====")
-expected = *(pval1, pval2)
-res = mul_fun(pval1, pval2)
-println("====")
-println("expected:  $expected res: $res")
+testop_c(*, PTile5e(2), PTile5e(-1/8), describe = true)
 =#
+
+include("cgen-epochtest.jl")
+epochtest(PTile4)
+epochtest(PTile5)
+epochtest(PTile5e)
+
 testop_c(+, PTile4)
 testop_c(*, PTile4)
 testop_c(/, PTile4)
@@ -116,3 +116,7 @@ testop_c(/, PTile4)
 testop_c(+, PTile5)
 testop_c(*, PTile5)
 testop_c(/, PTile5)
+
+testop_c(+, PTile5e)
+testop_c(*, PTile5e)
+testop_c(/, PTile5e)
