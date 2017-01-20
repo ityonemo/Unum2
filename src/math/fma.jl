@@ -177,7 +177,7 @@ end
 @pfunction function fma!(res::PBound, a::PBound, b::PBound, c::PBound)
   #terminate early on special values.
   (isempty(a) || isempty(b) || isempty(c)) && (set_empty!(res); return)
-  (ispreals(a) || ispreals(b) || ispreals(c)) && (set_preals!(acc); return)
+  (ispreals(a) || ispreals(b) || ispreals(c)) && (set_preals!(res); return)
   #check on special cases for multiplication:
 
   # if c contains inf, it may result in "erasure" of wraparound property from
@@ -374,7 +374,7 @@ end
 end
 
 @pfunction function std_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
-  set_double!(res)
+  set_double!(res) 
   #decide if the multiplication result will be positive or negative.
   mul_res_sign = isnegative(a.lower) $ isnegative(b.lower)
   #if the result is negative, the lower value will be the outer values for both
