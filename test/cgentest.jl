@@ -82,6 +82,13 @@ function div_fun{lattice, epochbits}(x::PBound{lattice, epochbits}, y::PBound{la
   PBound{lattice, epochbits}(cres)
 end
 
+function fma_fun{lattice, epochbits}(a::PBound{lattice, epochbits}, b::PBound{lattice, epochbits}, c::PBound{lattice, epochbits})
+  cres = PShim(0,0,0)
+  setfunction[PBound{lattice, epochbits}]()
+  ccall((:pfma, "./libpfloat.so"), Void, (Ref{PShim}, Ref{PShim}, Ref{PShim}, Ref{PShim}), Ref{PShim}(cres), Ref{PShim}(PShim(a)), Ref{PShim}(PShim(b)), Ref{PShim}(PShim(c)))
+  PBound{lattice, epochbits}(cres)
+end
+
 const setfunction = Dict{Type, Function}(
   PBound5  => () -> ccall((:set_PFloat5,  "./libpfloat.so"), Void, ()),
   PBound4  => () -> ccall((:set_PFloat4,  "./libpfloat.so"), Void, ()),
@@ -95,6 +102,7 @@ const c_fun = Dict{Function, Function}(
   addf => add_fun,
   mulf => mul_fun,
   divf => div_fun,
+  fma  => fma_fun
 )
 
 generate_library(expanduser("~/code/Unum2-c"), [:PFloat5, :PFloat4, :PFloat5e])
@@ -112,10 +120,12 @@ epochtest(PTile5e)
 testop_c(+, PTile4)
 testop_c(*, PTile4)
 testop_c(/, PTile4)
+testop_c(fma, PTile4, Val{:ternary})
 
 testop_c(+, PTile5)
 testop_c(*, PTile5)
 testop_c(/, PTile5)
+testop_c(fma, PTile5, Val{:ternary})
 
 testop_c(+, PTile5e)
 testop_c(*, PTile5e)

@@ -4,7 +4,7 @@
 
 function c_epoch(ptile)
   uval = reinterpret(UInt64, ptile)
-  ccall((:pf_epoch, "./libpfloat.so"), UInt64, (UInt64,), uval)
+  ccall((:tile_epoch, "./libpfloat.so"), UInt64, (UInt64,), uval)
 end
 
 function epochtest{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})

@@ -1,8 +1,6 @@
 #constants.jl
 #in this implementation, the constants are all pretty straightforward.
 
-
-
 @generated function incrementor{lattice, epochbits}(T::Type{PTile{lattice, epochbits}})
   x = one(UInt64) << (63 - latticebits(lattice) - epochbits)
   :($x)

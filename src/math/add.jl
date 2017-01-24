@@ -211,37 +211,32 @@ end
     cells = size($add_inv_table, 1)
     lookup_cell = sml.epoch - big.epoch + 1
 
-    #println("julia is seeking cell $lookup_cell")
     entries = size($add_inv_table, 2)
     indexcalc = (table_idx, lhs_idx, rhs_idx) -> (table_idx - 1) * (entries) * (entries) + (lhs_idx - 1) * (entries) + rhs_idx
     zero_index = indexcalc(lookup_cell, big.lvalue >> 1 + 1, sml.lvalue >> 1 + 1) - 1
-    #println("julia says c index should be: $zero_index")
-
 
     if lookup_cell <= cells
       res_lvalue = $add_inv_table[lookup_cell, big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
-      #println("julia says result lattice value should be $res_lvalue")
-      #println("julia says big.epoch is $(big.epoch)")
-
       res_epoch = (res_lvalue > big.lvalue) ? (big.epoch - 1) : big.epoch
     elseif (big.lvalue != 0)
       res_epoch = big.epoch
       res_lvalue = big.lvalue - 1
     else
-      res_epoch -= 1
+      res_epoch = big.epoch - 1
       res_lvalue = $max_lvalue
     end
 
     #may need to reverse the orientation on the result.
     res_uninvert = false
     if (res_epoch < 0)
-      #println("julia says hi mom!")
       res_uninvert = true
       res_epoch = 0
-      res_lvalue = $inv_add_inv_table[lookup_cell, big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
+      if lookup_cell <= cells
+        res_lvalue = $inv_add_inv_table[lookup_cell, big.lvalue >> 1  + 1, sml.lvalue >> 1 + 1]
+      else
+        res_lvalue = 1
+      end
     end
-
-    #println("final for julia:  epoch: $res_epoch lattice: $res_lvalue")
 
     (res_uninvert, res_epoch, res_lvalue)
   end

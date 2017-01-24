@@ -338,6 +338,21 @@ function exact_mul{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTil
   end
 end
 
+#this is a bad patch, it needs to be smarter in the future.
+function signed_exact_mul{lattice, epochbits}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits})
+  is_one(lhs) && return rhs;
+  is_one(rhs) && return lhs;
+  is_neg_one(lhs) && return -rhs;
+  is_neg_one(rhs) && return -lhs;
+
+
+  sign = isnegative(lhs) $ isnegative(rhs)
+
+  v = exact_mul(lhs,rhs)
+
+  (isnegative(v) $ sign) ? additiveinverse(v) : v
+end
+
 @generated function inexact_mul{lattice, epochbits, output}(lhs::PTile{lattice, epochbits}, rhs::PTile{lattice, epochbits}, OT::Type{Val{output}})
   if output == :lower
     :(upperulp(checked_exact_mul(glb(abs(lhs)), glb(abs(rhs)))))

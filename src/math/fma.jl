@@ -26,12 +26,22 @@ function Base.fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PT
 end
 
 function checked_exact_fma{lattice, epochbits, output}(a::PTile{lattice, epochbits},b::PTile{lattice, epochbits},c::PTile{lattice, epochbits}, OT::Type{Val{output}})
+
+  #println("-------")
+  #println("a, ",a)
+  #println("b, ",b)
+  #println("c, ",c)
+
+  #if (is_zero(c))
+  #  println("signed_exact_mul($a, $b)", signed_exact_mul(a,b))
+  #end
+
   (is_inf(a)) && return inf(PTile{lattice, epochbits})
   (is_inf(b)) && return inf(PTile{lattice, epochbits})
   (is_inf(c)) && return inf(PTile{lattice, epochbits})
   (is_zero(a)) && return c
   (is_zero(b)) && return c
-  (is_zero(c)) && return exact_mul(a, b)
+  (is_zero(c)) && return signed_exact_mul(a, b)
   (is_one(a)) && return checked_exact_add(b, c)
   (is_one(b)) && return checked_exact_add(a, c)
   (is_neg_one(a)) && return checked_exact_add(c, -b)
@@ -158,7 +168,7 @@ end
       a_bound = (mul_res_sign $ isnegative(a)) ? lub(a) : glb(a)
       b_bound = (mul_res_sign $ isnegative(b)) ? lub(b) : glb(b)
 
-      upperulp(check_exact_fma(a_bound, b_bound, glb(c), OT))
+      upperulp(checked_exact_fma(a_bound, b_bound, glb(c), OT))
     end
   else #output == :upper
     quote
@@ -228,9 +238,12 @@ end
 
     set_double!(res)
 
-    c_upper_proxy = issingle(a) ? c.lower : c.upper
+    c_upper_proxy = issingle(c) ? c.lower : c.upper
     res.lower = fma(a.lower, b.lower, c.lower, __LOWER)
     res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+
+    #println(res.lower)
+    #println(res.upper)
 
     #although we know that the product of two tiles must be on the same half
     #of the real number line, we must consider if the added part might wind
@@ -250,8 +263,13 @@ end
     set_double!(res)
 
     c_upper_proxy = issingle(c) ? c.lower : c.upper
-    res.lower = fma(a.lower, b.lower, c.lower, __LOWER)
-    res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+    if is_positive(a.lower)
+      res.lower = fma(a.lower, b.lower, c.lower, __LOWER)
+      res.upper = fma(a.lower, b.upper, c_upper_proxy, __UPPER)
+    else
+      res.lower = fma(a.lower, b.upper, c.lower, __LOWER)
+      res.upper = fma(a.lower, b.lower, c_upper_proxy, __UPPER)
+    end
 
     #although we know that the product of two tiles must be on the same half
     #of the real number line, we must consider if the added part might wind
@@ -374,7 +392,7 @@ end
 end
 
 @pfunction function std_fma!(res::PBound, a::PBound, b::PBound, c::PBound)
-  set_double!(res) 
+  set_double!(res)
   #decide if the multiplication result will be positive or negative.
   mul_res_sign = isnegative(a.lower) $ isnegative(b.lower)
   #if the result is negative, the lower value will be the outer values for both

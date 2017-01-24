@@ -11,6 +11,10 @@ typealias UT_Int UInt64
 @assert UT_Int <: Unsigned
 #generate derived types from the Unsigned tile integer.
 typealias ST_Int typeof(signed(one(UT_Int)))
+@assert ST_Int <: Signed
+
+
+
 const PT_bits = sizeof(UT_Int) * 8
 bitstype PT_bits PTile{lattice, epochbits} <: AbstractFloat
 export PTile
